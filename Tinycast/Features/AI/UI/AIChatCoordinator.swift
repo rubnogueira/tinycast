@@ -14,6 +14,8 @@ final class AIChatCoordinator {
     private let window: AppWindowController
     /// Chats with a title request in flight, so a quick second reply never asks twice.
     @ObservationIgnored private var naming: [UUID: Task<Void, Never>] = [:]
+    /// The wait before the next window is built, so closing one never stalls on building another.
+    @ObservationIgnored private var preparing: Task<Void, Never>?
 
     init(
         chats: AIChatSurfacesState, settings: AppSettings, appIndex: AppIndex,
@@ -29,8 +31,10 @@ final class AIChatCoordinator {
         window = AppWindowController(
             title: "AI Chat", contentSize: Theme.Size.aiChatWindow,
             minimumSize: Theme.Size.aiChatWindowMinimum, resizable: true,
-            autosaveName: "AIChatWindow", activation: core.activationPolicy, closesOnEscape: true)
+            autosaveName: "AIChatWindow", activation: core.activationPolicy, closesOnEscape: true,
+            animatesOpening: false)
         chats.onReplyFinished = { [weak self] chat in self?.nameIfNeeded(chat) }
+        window.onClose = { [weak self] in self?.prepareWindowSoon() }
     }
 
     func applyEnabled() {
@@ -40,13 +44,16 @@ final class AIChatCoordinator {
             naming = [:]
             // Before the handle closes: cancelling an open reply saves the conversation it ends.
             chats.reset()
+            preparing?.cancel()
             window.close()
+            window.discardPrepared()
             core.applyInstalledAILifecycle()
             core.chatHistory.close()
             core.quickAICoordinator.leave()
             return
         }
         core.applyInstalledAILifecycle()
+        prepareWindowSoon(after: .seconds(3))
         // Deferred off the launch path like the clipboard's own read; history fills in behind it.
         Task {
             core.chatHistory.load()
@@ -64,22 +71,54 @@ final class AIChatCoordinator {
 
     // MARK: - The window
 
-    /// Reopens on whatever it last showed: the conversation is `AppCore`'s, not the window's.
+    /// Shows the window's chat as it stands; only `toggleWindow` starts a new one.
     func showWindow() {
         guard settings.aiEnabled else { return }
         prepareForChat()
         guard !window.focus() else { return }
+        preparing?.cancel()
+        guard !window.showPrepared() else { return }
+        let parts = makeWindowParts()
+        window.show(chrome: parts.chrome) { parts.content }
+    }
+
+    private func makeWindowParts() -> (chrome: AIChatWindowChrome, content: NSViewController) {
         // One find per window: the chrome's search field writes it, the transcript reads it.
         let find = ChatFindState()
-        window.show(chrome: AIChatWindowChrome(coordinator: self, chats: chats, find: find)) {
-            AIChatSplitViewController(
-                sidebar: AIChatSidebarView().environment(self),
-                detail: AIChatDetailView().environment(self).environment(find))
+        let chrome = AIChatWindowChrome(coordinator: self, chats: chats, find: find)
+        let content = AIChatSplitViewController(
+            sidebar: AIChatSidebarView().environment(self),
+            detail: AIChatDetailView().environment(self).environment(find))
+        return (chrome, content)
+    }
+
+    /// Builds the next window while nobody waits on it, so opening one is only ordering it front.
+    private func prepareWindow() {
+        guard settings.aiEnabled, !window.isOpen, !window.isPrepared else { return }
+        // The next open is a new chat, so the window is built on it, not on the one just left.
+        chats.newWindowChat()
+        let parts = makeWindowParts()
+        window.prepare(chrome: parts.chrome) { parts.content }
+    }
+
+    /// Waits out the palette too, which a window build of a few hundred milliseconds would stall.
+    private func prepareWindowSoon(after delay: Duration = .milliseconds(400)) {
+        preparing?.cancel()
+        guard settings.aiEnabled else { return }
+        preparing = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            while let self, self.paletteCoordinator.isVisible, !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+            }
+            guard let self, !Task.isCancelled else { return }
+            self.prepareWindow()
         }
     }
 
+    /// A window that was closed opens on a new chat; one already up keeps the chat it shows.
     func toggleWindow() {
         guard !closeWindowIfKey() else { return }
+        if !window.isOpen { chats.newWindowChat() }
         showWindow()
     }
 

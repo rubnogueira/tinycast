@@ -149,6 +149,12 @@ struct ChatReasoning: Equatable, Hashable, Sendable {
     let textOffset: Int
     /// Until the answer resumed, or the reply ended; nil while it is still thinking.
     var duration: TimeInterval?
+
+    /// Providers close a stretch with blank lines, which a quote bar would draw as empty space.
+    var displayText: String {
+        guard let last = text.lastIndex(where: { !$0.isWhitespace }) else { return "" }
+        return String(text[...last])
+    }
 }
 
 enum ChatSegment: Equatable, Hashable {

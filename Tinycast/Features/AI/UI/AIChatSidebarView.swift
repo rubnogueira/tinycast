@@ -6,11 +6,17 @@ struct AIChatSidebarView: View {
     @State private var query = ""
     @State private var renaming: UUID?
     @State private var renameText = ""
+    @State private var visibleLimit = AIChatSidebarView.pageSize
     @FocusState private var searchFocused: Bool
     @FocusState private var renameFocused: Bool
 
     private var chats: AIChatSurfacesState { coordinator.chats }
     private var history: ChatHistoryStore { coordinator.history }
+
+    /// SwiftUI's sidebar `List` diffs rows in quadratic time, so a long history is fed in pages.
+    private static let pageSize = 30
+    /// The next page starts loading when the row this far from the end scrolls into view.
+    private static let prefetchDistance = 8
 
     private struct ChatSection: Identifiable {
         let title: String
@@ -19,9 +25,9 @@ struct AIChatSidebarView: View {
     }
 
     /// Recency order already groups each day together, so a bucket only ever opens once.
-    private var sections: [ChatSection] {
+    private func sections(of conversations: ArraySlice<ChatConversation>) -> [ChatSection] {
         var sections: [ChatSection] = []
-        for conversation in history.search(query).pinnedFirst {
+        for conversation in conversations {
             let title = conversation.isPinned ? "Pinned" : DateBucket(for: conversation.updatedAt).title
             if sections.last?.title == title {
                 sections[sections.count - 1].conversations.append(conversation)
@@ -41,6 +47,7 @@ struct AIChatSidebarView: View {
         }
         // The field sits under the toolbar's material, so it needs its own clearance from the top.
         .padding(.top, Theme.Spacing.md)
+        .onChange(of: query) { visibleLimit = Self.pageSize }
         .onExitCommand {
             if query.isEmpty {
                 _ = coordinator.closeWindowIfKey()
@@ -51,7 +58,12 @@ struct AIChatSidebarView: View {
     }
 
     @ViewBuilder private var list: some View {
-        let sections = sections
+        let matches = history.search(query).pinnedFirst
+        let shown = matches.prefix(visibleLimit)
+        let sections = sections(of: shown)
+        let limit = visibleLimit
+        let hasMore = matches.count > limit
+        let prefetchID = hasMore ? shown.dropLast(Self.prefetchDistance).last?.id : nil
         let answering = chats.answeringIDs
         let openID = chats.window.session.id
         if sections.isEmpty {
@@ -66,8 +78,19 @@ struct AIChatSidebarView: View {
                                 isSelected: conversation.id == openID
                             )
                             .tag(conversation.id)
+                            .onAppear {
+                                if conversation.id == prefetchID { loadMore(from: limit) }
+                            }
                         }
                     }
+                }
+                if hasMore {
+                    Button("Show More") { loadMore(from: limit) }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .onAppear { loadMore(from: limit) }
+                        .selectionDisabled()
                 }
             }
             .listStyle(.sidebar)
@@ -82,6 +105,12 @@ struct AIChatSidebarView: View {
                 Task { await coordinator.deleteChat(id: id) }
             }
         }
+    }
+
+    /// Keyed by the limit a row was built under, so a stale appearance never loads a page twice.
+    private func loadMore(from limit: Int) {
+        guard visibleLimit == limit else { return }
+        visibleLimit = limit + Self.pageSize
     }
 
     @ViewBuilder private var emptyState: some View {

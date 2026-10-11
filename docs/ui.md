@@ -100,7 +100,7 @@ groups. See "Section headers" below.
 
 ### Radius (`Theme.Radius`)
 
-`panel 26` · `row 10` · `formField 12` · `card 10` · `dialog 20` · `dialogSymbol 16` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
+`panel 26` · `row 10` · `formField 12` · `card 10` · `codeBlock 14` · `dialog 20` · `dialogSymbol 16` · `menuPanel 16` · `menu 6` · `menuRow 10` · `barControl 8` · `thumbnail 6` · `keyCap 6` · `recorderKeyCap 4`
 
 `formField` dresses the native Snippet, Quicklink, Event and Custom Command editor fields; it does not change settings controls
 or extension forms.
@@ -237,6 +237,10 @@ is an `adaptive` pair, not a `ramp`. So is `composerSendInk`, black 0.85 on the 
 on the light one.
 `brand`, `primaryAction`, `destructive`, `success` and `dropGuideArmed` are fixed hues and adapt on
 their own.
+`Theme.Colors.Syntax` holds the code-colouring palette AI Chat paints into a fenced block — `keyword`,
+`string`, `number`, `comment`, `type`, `function`, `constant`, `attribute`, `property`, `inserted`
+and `deleted`. Each is an `adaptive` pair, a bright hue on the dark surface and a deeper one on the
+light, and it is the only place a syntax colour is chosen.
 
 Beyond these, `.secondary`/`.tertiary` foreground styles are fine for SF Symbols (they resolve against
 the environment's appearance). **Selection always beats hover** when a row is both.
@@ -359,7 +363,9 @@ transcript text, and sits in the transcript's own frame at its bottom edge, so n
 push it off screen. A reply's choices are `.glass` capsules that rise out of the composer's top
 edge. Find marks words in `Colors.findMatch` / `findCurrent`, the system yellow, with
 `findCurrentInk` black on the solid one in both appearances. Transcript lines sit
-`spacing.chatLine 4` apart on both surfaces. The transcript itself is the palette's `ChatTranscriptView`
+`spacing.chatLine 5` apart on both surfaces, and a heading is its body size times
+`Typography.chatHeadingScales`. A source chip is a glass capsule like a choice, led by a
+`chatSourceBadge 18` number disc. The transcript itself is the palette's `ChatTranscriptView`
 with `surface: .window`, which leaves out `edgeDissolve` and `thinScrollbar` — both are measured
 against the palette's bars — and caps the column at `aiChatReadingWidth`, centred.
 

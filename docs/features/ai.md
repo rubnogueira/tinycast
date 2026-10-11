@@ -84,7 +84,8 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   Claude-CLI `thinking_delta`, Codex's reasoning summary — into `ChatMessage.reasoning`, a list of
   `ChatReasoning` blocks. Thinking that resumes after answer text opens a new block pinned at that
   text offset, so `segments` places it where it happened, like a search or a tool call; each block
-  is timed until the answer resumes. The transcript folds each under "Thought for Ns";
+  is timed until the answer resumes. The transcript folds each under "Thought for Ns", drawing
+  `ChatReasoning.displayText` — the stored text without the blank lines a route closes it with;
   `message_thinking` keeps them; `requestMessages` never sends them back. A route that only says
   it is thinking still just shows "Thinking…". How much there is to read is the route's call:
   Claude streams full summaries, while Grok's CLI sends a line or two in the clear and the rest of
@@ -102,8 +103,9 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   result, and `displayTitle` prefers a rename, then this, then the first question.
 - **A reply's links are its sources.** `ChatReferences.extract` gathers the web links of a finished
   reply — Markdown links by their own names, bare URLs by host and path — in the order cited, one
-  per page, skipping code, and both surfaces list them under the reply as numbered glass chips that
-  open in the browser. The same numbers close the sentence that cited each source, as a raised,
+  per page, skipping code, and both surfaces list them under the reply as glass capsules, each led by
+  its number, that open in the browser and share `chatChip()` with the suggested replies, so the two
+  read as one family. The same numbers close the sentence that cited each source, as a raised,
   linked `[n]`: `ChatCitations` finds each link's sentence end in the drawn text and inserts after
   it, two sources in one sentence sharing it, so prose and chips always agree. The preamble asks the model to link a page it relies on inline, so a cited
   answer carries its sources without a second request.
@@ -118,9 +120,12 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   fence out of the prose (an unclosed one mid-stream too, so it never flashes as code). Apple's
   on-device model tends to drop the fence and write a bare `choices` line over a list, so a
   label on its own line with nothing but list items after it, to the reply's end, counts too; and
-  `ChatSuggestionChips` draws the options as glass capsules: in the window they rise out of the
-  composer, sitting on its top edge until the reader starts typing; in Quick AI they close the
-  transcript. A click sends the option as the reader's next message, through the same `send` a
+  `ChatSuggestionChips` draws the options as glass capsules (`frosted(in:)`), so each reads over the
+  transcript, centred, each wrapped row on its own mid-width (`ChatFlowLayout(centersRows:)`; the
+  sources keep the leading edge): in the window they sit on a transparent strip, a bottom safe-area inset of the
+  transcript, so the transcript scrolls beneath them instead of ending above, and they rise out of
+  the composer until the reader starts typing (the tail-follow test subtracts that inset); in Quick
+  AI they close the transcript. A click sends the option as the reader's next message, through the same `send` a
   typed one takes. Older replies lose their chips, since only the last question is still open. It is text in, text out, so it
   works on every route — and not at all with the system prompt switched off, which drops the
   preamble that describes it.
@@ -227,8 +232,10 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   a timestamp leaves one clock instead of two racing over the same state, and a verdict that still
   holds after a relaunch. A reply still streaming is never reset out from under the reader — it was
   asked for — and the transcript is saved regardless, so the old conversation is one ⌘K → Chat
-  History away, and in the window's sidebar. The window has no policy: it reopens on whatever it
-  last showed.
+  History away, and in the window's sidebar. The window's rule is shorter still: opened from the
+  launcher or its shortcut while closed, it always starts a new chat
+  (`AIChatCoordinator.toggleWindow`). ⌘J and Chat History's ⌘J put their chat in the window first and
+  then call `showWindow`, which never resets, so a chat placed there is the one that opens.
 - **Arriving with a question skips the open policy entirely.** `ask(_:)` — ⇥ from the launcher, and
   the Quick AI fallback row — always starts a new chat and submits the text, because a question asked
   outright is not a summon: resuming a transcript to append an unrelated line to it would be the one
@@ -400,6 +407,20 @@ and New Chat as two round buttons at the sidebar's trailing edge, then Find in C
 alone at the window's — the title, and one key monitor for ⌘V, ⌘B, ⌃⇥ / ⌃⇧⇥, ⌘F, ⌘G / ⇧⌘G, ⌘K
 and the Actions menu's own chords, and dies with the window.
 
+Opening it costs a keypress, not a build. Constructing the split view, its SwiftUI trees and the
+toolbar takes about 250 ms once warm and most of a second on the first open, all of it between the
+key and the first frame, and it did not shrink with fewer chats. So `AIChatCoordinator` builds the
+window before it is asked for: three seconds after AI is enabled, and 400 ms after each close,
+`prepareWindow` replaces the window's chat with a new one, builds the window on it and lays it out,
+and `AppWindowController` holds it hidden (`prepare`). The open itself is `showPrepared`, which orders
+that window front: about 15 ms, plus the system's own first frame. The window opens without AppKit's
+order-in zoom (`animatesOpening: false`, as the palette's panels do), which would otherwise keep it
+growing for about 110 ms after that frame. A press that beats the build falls back to building the
+window then. Only one hidden window ever exists, a palette that is up
+holds the build back until it is down, and turning AI off discards it. The window is built on the new
+chat the next open would start, so a closed window's chat is replaced when the next one is prepared,
+not when it opens.
+
 - **Find in Chat** (⌘F): the system's `NSSearchToolbarItem`, as is. `ChatFindState` is one per
   window and steps match by match, not message by message:
   `ChatFindIndex` walks each message exactly as the transcript draws it — reasoning folds, every
@@ -417,7 +438,12 @@ and the Actions menu's own chords, and dies with the window.
   `ChatMarkdownRenderer` builds its single attributed string: lists with hanging indents, quotes,
   code as `NSTextBlock`s, tables as an `NSTextTable`, with find's marks and the citation numbers
   in it. Its leaf paths are `ChatFindIndex.leaves`'s, which `chat-markdown-test` pins. A code
-  block's language and Copy sit in a strip its block leaves above the code. Thinking folds, search
+  heading is its body size times `Theme.Typography.chatHeadingScales` (`#` is 1.7×, `##` 1.4×, `###`
+  1.2×, `####` 1.08×, deeper ones the body's), bold for the first two and semibold below, with space
+  above it by level and little under it so it sits with what it introduces. A code
+  block is a `RoundedTextBlock`, a continuous rounded rectangle (`Theme.Radius.codeBlock`) in place
+  of the rectangle `NSTextBlock` draws, and its language and Copy sit in a strip its block leaves
+  above the code. Thinking folds, search
   and tool rows stay separate views, so a drag spans one segment's text. A fold holding a match
   opens. A glass counter at the transcript's top edge says "3 of 17" with the same steps as
   Return / ⇧↩ in the field and ⌘G / ⇧⌘G anywhere. The sidebar's own filter is still there, by click.
@@ -437,17 +463,36 @@ and the Actions menu's own chords, and dies with the window.
   flashes as source nor jumps from the left to the centre. Only the last segment of a streaming reply
   is mid-stream, an opener the stream has passed stays visible, and a lone `$` is never held back,
   since it may be a price.
+- **Code is coloured by a small scanner, not a dependency.** `SyntaxHighlighter.tokens(in:language:)`
+  (`Features/AI/Model/Syntax*.swift`, Foundation-only) walks a fenced block's UTF-16 once and returns
+  non-overlapping `SyntaxToken`s, which `ChatMarkdownRenderer` paints as foreground colours from
+  `Theme.Colors.Syntax` (adaptive: keyword, string, number, comment, type, function, constant,
+  attribute, property, inserted, deleted). `SyntaxLanguage(named:)` maps the fence's name and its
+  usual aliases: Swift, JavaScript, TypeScript, Python, Java, Kotlin, C, C++, Objective-C, C#, Go, Rust,
+  Ruby, PHP, Lua, SQL, shell, Dockerfile, JSON, YAML, TOML and INI through one table-driven
+  `SyntaxGrammar`, and markup (HTML, XML), stylesheets and diffs through their own scanners. An unknown
+  language, a fence without one, or a block over `SyntaxHighlighter.sizeLimit` (40,000 UTF-16 units)
+  stays plain, as does a failed reply, which keeps its error colour. A streaming block is re-scanned
+  as it grows, so an unclosed string or comment colours to the end of what has arrived and settles
+  when it closes. It is a lexer, not a parser: it never rejects input and never throws, so what it
+  cannot classify stays plain. `syntax-highlight-test` pins it.
 - **Actions** (⌘K): Quick AI's ⌘K menu for a window, on the same chords — Stop Response (`⌘.`), New
   Chat (`⌘N`), Regenerate (`⌘R`), Copy Last Response (`⇧⌘C`), Remove Attachments, Find in Chat
   (`⌘F`) and AI Settings (`⌥⌘,`) — plus what only a saved chat has: Copy Chat, Pin and Delete.
   `AIChatActionsMenu` builds it per open from the chat's state, as an `NSMenu` hung under the
   toolbar button whether the click or ⌘K opened it.
   Escape closes the window; an open menu, active search or rename takes Escape first. The
-  sidebar clears a nonempty filter before a second Escape closes. Closing preserves the draft
-  and leaves a reply streaming.
+  sidebar clears a nonempty filter before a second Escape closes. Closing leaves a reply streaming;
+  the next open is a new chat, so a draft left in a chat that has messages goes with it, while an
+  empty chat keeps its draft and staged files.
 
-- **Sidebar** (`AIChatSidebarView`): a filter field over a `List` of every saved chat, Pinned
-  first and then bucketed by day like Clipboard. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥ open
+- **Sidebar** (`AIChatSidebarView`): a filter field over a `List` of the saved chats, Pinned
+  first and then bucketed by day like Clipboard. The `List` is fed thirty rows at a time: the next thirty
+  load when the row eight from the end scrolls into view, so a reader scrolling down never reaches
+  the end, and a `Show More` end row backs that up where a tall pane shows everything loaded:
+  SwiftUI's sidebar `List` diffs its rows in quadratic time, so 3,000 chats held the main thread for
+  about nine seconds on every open, and a flat list was worse. The filter still searches every chat
+  and starts over at one page. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥ open
   the next or previous one, wrapping, over every saved chat whatever the filter shows. ⌘B shows or
   hides the sidebar. A new chat has none until its first message saves it, so starting one or
   leaving an empty one never adds or drops a row under the pointer. A row shows a spinner while its reply streams, else a pin when
@@ -458,7 +503,10 @@ and the Actions menu's own chords, and dies with the window.
   the selected chat the same way.
 - **Transcript**: `ChatTranscriptView` with `surface: .window`, which drops the palette's edge
   dissolve and thin scrollbar (both are measured against the palette's bars) and centres the column
-  at `aiChatReadingWidth`. The last finished reply offers Regenerate beside Copy: `AIChatState`
+  at `aiChatReadingWidth`, framed before its padding exactly as the composer is, so the two share
+  edges. A reply runs flush to the column's right edge, where a sent message ends, which puts a code
+  block's right edge on the composer's; Quick AI's replies keep their `xxl` gap and `sm` inset.
+  The last finished reply offers Regenerate beside Copy: `AIChatState`
   drops only a trailing reply and asks again with the question and its attachments, of whichever
   model is selected now.
 - **Composer** (`AIChatDetailView`): one pane of untinted Liquid Glass at `Radius.dialog`, stacked
@@ -600,6 +648,31 @@ window, and every chat action either surface sends — is the nineteenth feature
   long equation shrinks to fit rather than running off the edge.
 - Return sends, ⇧↩ breaks the line, and a Japanese IME's Return confirms its text without sending.
 - Drop a PDF on the pane with a text-only model selected: the HUD refuses it, as a paste would.
+- Press the AI Chat shortcut a few seconds after launch, and again right after closing the window:
+  the window appears at once with the composer focused, with 3,000 chats saved as with none, and
+  closing it twice in a row leaves no extra window in Mission Control or the Window menu.
+- With a few hundred chats saved, the window opens as quickly as with none, and scrolling the
+  sidebar down keeps loading older chats ahead of the pointer, so the end is never reached while
+  more exist. Filtering still finds a chat that is not loaded yet.
+- A reasoning fold ends on its last line of text, with no empty stretch under it, in both surfaces.
+- In the window, a code block's right edge sits on the sent messages' and on the composer's, and
+  its left edge on the composer's; in Quick AI replies keep their gap at the right.
+- Suggested replies are glass capsules on a strip with no background of its own: scroll a long reply
+  up and its text and code pass under the strip, with "Jump to Latest" sitting above the chips.
+- Suggested replies sit centred over the composer's column, and when they wrap each row is centred.
+- Ask for a reply with `#`, `##` and `###` headings, a list and a quote: each heading is visibly larger
+  than the text, the largest first, with room above it and the text just below it, and the paragraphs
+  and list items are not packed together.
+- Source chips under a cited reply match the suggested replies' glass capsules, the number first.
+- Code blocks have rounded corners, in Dark and Light, and are coloured: ask for one snippet each in
+  Swift, Python, shell, JSON, SQL, a diff and HTML, and keywords, strings, numbers and comments take
+  their own colours, a `diff` shows additions green and removals red, and an unlabelled block stays
+  plain. Switching appearance recolours them without a relaunch.
+- Close the window on a saved chat and open AI Chat again from the launcher: it is empty. Quick AI's
+  ⌘J and Chat History's ⌘J still open the window on their own chat, and reopening a window already
+  up changes nothing.
+- Hover Copy on a code block: the pointer stays an arrow, and it is an I-beam again over the text
+  beside it.
 - Collapse the sidebar with the toolbar button or ⌘B; ⌘N and ⌘Q (Close Window) still work, and ⌘Q with
   Settings in front closes Settings instead.
 - Escape closes AI Chat with the composer focused, preserving its draft and any streaming reply.
@@ -610,9 +683,12 @@ window, and every chat action either surface sends — is the nineteenth feature
   think tags across content and SSE splits, persistence repair,
   Codex framing, on-device routing, the two MCP launch encodings and the two consent channels, the
   shown-model and switched-off-route rules, and a tool's override from settings to launch),
+  `syntax-highlight-test` (every grammar's tokens, language aliases, the size limit, and that every
+  prefix of a streaming block scans in order and inside its own bounds),
   `ai-chat-test` (`ChatSession`, `MarkdownBlock` with its math delimiters, LaTeX subset and
   mid-stream hold-back, `ChatHistoryStore` with renames and pins,
-  `AIToolLoopProvider`, regenerate, and `AIChatSurfacesState`'s one-live-place rule),
+  `AIToolLoopProvider`, regenerate, `ChatReasoning`'s display text and `AIChatSurfacesState`'s
+  one-live-place rule),
   and `apple-intelligence-test` (status copy, snapshot deltas,
   transcript assembly and error mapping, plus an optional real generation enabled with
   `TINYCAST_TEST_APPLE_INTELLIGENCE=1` when this Mac can run one), all in

@@ -39,6 +39,8 @@ struct AIChatDetailView: View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // An inset, not a row: the transcript scrolls under the chips instead of ending above them.
+                .safeAreaInset(edge: .bottom, spacing: 0) { suggestionChips }
                 // In the transcript's own frame, so the card can never leave the window.
                 .overlay(alignment: .bottom) {
                     if showsContext {
@@ -53,23 +55,32 @@ struct AIChatDetailView: View {
                         .allowsHitTesting(false)
                     }
                 }
-            VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-                if !suggestions.isEmpty, chat.draft.isEmpty {
-                    ChatSuggestionChips(choices: suggestions) { coordinator.send($0, in: chat) }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                AIChatComposer(
-                    chat: chat, coordinator: coordinator, settings: coordinator.aiSettings,
-                    maximumTextHeight: composerHeight, showsContext: $showsContext,
-                    isDropTargeted: $isDropTargeted)
-            }
+            AIChatComposer(
+                chat: chat, coordinator: coordinator, settings: coordinator.aiSettings,
+                maximumTextHeight: composerHeight, showsContext: $showsContext,
+                isDropTargeted: $isDropTargeted
+            )
             .frame(maxWidth: Theme.Size.aiChatReadingWidth)
             .padding(.horizontal, Theme.Spacing.xxl)
             .padding(.bottom, Theme.Spacing.xxl)
             .padding(.top, Theme.Spacing.sm)
-            .animation(.snappy, value: suggestions)
-            .animation(.snappy, value: chat.draft.isEmpty)
         }
+    }
+
+    private var suggestionChips: some View {
+        VStack(spacing: 0) {
+            if !suggestions.isEmpty, chat.draft.isEmpty {
+                ChatSuggestionChips(choices: suggestions) { coordinator.send($0, in: chat) }
+                    .frame(maxWidth: Theme.Size.aiChatReadingWidth)
+                    .padding(.horizontal, Theme.Spacing.xxl)
+                    .padding(.top, Theme.Spacing.xs)
+                    .padding(.bottom, Theme.Spacing.md)
+                    .frame(maxWidth: .infinity)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: suggestions)
+        .animation(.snappy, value: chat.draft.isEmpty)
     }
 
     @ViewBuilder private var content: some View {

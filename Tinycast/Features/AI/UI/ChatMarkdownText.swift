@@ -168,6 +168,16 @@ final class ChatSelectableTextView: NSTextView {
         layoutOverlays()
     }
 
+    /// The text view re-sets its I-beam on every move, even over a header laid on top of it.
+    override func mouseMoved(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        guard headers.contains(where: { $0.frame.contains(point) }) else {
+            super.mouseMoved(with: event)
+            return
+        }
+        NSCursor.arrow.set()
+    }
+
     /// The code headers and find's anchor sit on the drawn layout, which tracks the frame.
     private func layoutOverlays() {
         guard frame.width > 0, let layout = layoutManager, let container = textContainer else {

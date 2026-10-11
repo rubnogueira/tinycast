@@ -19,14 +19,20 @@ final class AppWindowController: NSObject, NSWindowDelegate {
     private let autosaveName: String?
     private let activation: ActivationPolicy
     private let closesOnEscape: Bool
+    private let animatesOpening: Bool
     private var window: NSWindow?
     /// Rebuilt with the window, so a chrome's state never outlives the window it decorated.
     private var chrome: WindowChrome?
+    /// Built and laid out but never shown: opening it is only ordering it front.
+    private var prepared: (window: NSWindow, chrome: WindowChrome?)?
+    /// Runs after a shown window closes, so a feature can have the next one ready.
+    var onClose: (() -> Void)?
 
     /// The opening size is also the resize floor unless a smaller `minimumSize` is named.
     init(
         title: String, contentSize: CGSize, minimumSize: CGSize? = nil, resizable: Bool = false,
-        autosaveName: String? = nil, activation: ActivationPolicy, closesOnEscape: Bool = false
+        autosaveName: String? = nil, activation: ActivationPolicy, closesOnEscape: Bool = false,
+        animatesOpening: Bool = true
     ) {
         self.title = title
         self.contentSize = contentSize
@@ -35,6 +41,7 @@ final class AppWindowController: NSObject, NSWindowDelegate {
         self.autosaveName = autosaveName
         self.activation = activation
         self.closesOnEscape = closesOnEscape
+        self.animatesOpening = animatesOpening
     }
 
     /// Returns `true` when a window was built, `false` when an already-open one was re-raised.
@@ -58,13 +65,45 @@ final class AppWindowController: NSObject, NSWindowDelegate {
             raise(window)
             return false
         }
+        let content = contentViewController()
+        open(makeWindow(content: content, chrome: chrome), chrome: chrome)
+        return true
+    }
+
+    /// Builds and lays out the window without showing it, for `showPrepared` to open at once.
+    func prepare(chrome: WindowChrome? = nil, contentViewController: () -> NSViewController) {
+        guard window == nil, prepared == nil else { return }
         let window = makeWindow(content: contentViewController(), chrome: chrome)
+        window.contentView?.layoutSubtreeIfNeeded()
+        prepared = (window, chrome)
+    }
+
+    var isPrepared: Bool { prepared != nil }
+
+    /// Opens the window `prepare` built; `false` when there is none, so the caller builds one.
+    @discardableResult
+    func showPrepared() -> Bool {
+        guard window == nil, let prepared else { return false }
+        self.prepared = nil
+        open(prepared.window, chrome: prepared.chrome)
+        return true
+    }
+
+    func discardPrepared() {
+        guard let prepared else { return }
+        self.prepared = nil
+        prepared.window.delegate = nil
+        prepared.window.close()
+    }
+
+    private func open(_ window: NSWindow, chrome: WindowChrome?) {
         self.chrome = chrome
         self.window = window
         activation.windowDidOpen(window)
         raise(window)
-        return true
     }
+
+    var isOpen: Bool { window != nil }
 
     /// Re-raise an open window without rebuilding it; `false` when none is open.
     @discardableResult
@@ -99,6 +138,7 @@ final class AppWindowController: NSObject, NSWindowDelegate {
         self.window = nil
         self.chrome = nil
         activation.windowDidClose(window)
+        onClose?()
     }
 
     // MARK: - Private
@@ -119,6 +159,7 @@ final class AppWindowController: NSObject, NSWindowDelegate {
         window.titleVisibility = .hidden
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
+        if !animatesOpening { window.animationBehavior = .none }
         // AppKit would otherwise resurrect the window at launch, before anything is wired up.
         window.isRestorable = false
         window.contentMinSize = minimumSize

@@ -23,7 +23,7 @@ enum Theme {
         /// A stream grows the transcript as the reader descends, so an exact-bottom test runs away.
         static let chatFollowTailSlack: CGFloat = 44
         /// Extra leading between a transcript's lines, so a long reply reads as paragraphs.
-        static let chatLine: CGFloat = 4
+        static let chatLine: CGFloat = 5
         /// Space above every header but the first, reading as the previous section's close.
         static let sectionSpacing: CGFloat = 12
         /// Emoji tiles need a little more separation so adjacent category grids stay distinct.
@@ -52,6 +52,8 @@ enum Theme {
         /// A pill holding a square thumbnail; a full capsule fights the thumbnail's own corners.
         static let attachmentChip: CGFloat = 8
         static let card: CGFloat = 10
+        /// A fenced code block in a chat: round enough to read as a Mac surface, not a table cell.
+        static let codeBlock: CGFloat = 14
         /// A window-to-be in the room preview, rounded like a real window rather than a row.
         static let roomCard: CGFloat = 16
         static let keyCap: CGFloat = 6
@@ -231,6 +233,8 @@ enum Theme {
         static let chatContextGauge: CGFloat = 14
         /// A source chip's title before it middle-truncates, so three chips share a row.
         static let chatSourceTitle: CGFloat = 200
+        /// The number's disc at a source chip's leading edge.
+        static let chatSourceBadge: CGFloat = 18
         /// The context card's width: a label column and a value one, with room for a model name.
         static let chatContextCard: CGFloat = 300
         /// A grouped `Form` row's control height.
@@ -397,6 +401,8 @@ enum Theme {
         static let markdownHeading1 = Font.title2.weight(.semibold)
         static let markdownHeading2 = Font.title3.weight(.semibold)
         static let markdownHeading3 = Font.headline
+        /// A chat reply's `#` to `####` as multiples of its body size; deeper headings stay at it.
+        static let chatHeadingScales: [CGFloat] = [1.7, 1.4, 1.2, 1.08]
         static let code = Font.system(.callout, design: .monospaced)
         static let inlineCode = Font.body.monospaced()
         static let bar = Font.callout.weight(.medium)
@@ -528,6 +534,31 @@ enum Theme {
         /// The command output window's page: a flat surface the log sits directly on.
         static let terminalSurface = adaptive(
             dark: .srgbInk(0.07, alpha: 1), light: .srgbInk(0.99, alpha: 1))
+
+        /// Code ink, Xcode's own palette in both appearances so a snippet reads as it does in the editor.
+        enum Syntax {
+            static let keyword = pair(dark: 0xFC5FA3, light: 0xAD3DA4)
+            static let string = pair(dark: 0xFC6A5D, light: 0xD12F1B)
+            static let number = pair(dark: 0xD0BF69, light: 0x272AD8)
+            static let comment = pair(dark: 0x7F8C98, light: 0x5D6C79)
+            static let type = pair(dark: 0x5DD8FF, light: 0x1F7A85)
+            static let function = pair(dark: 0x67B7A4, light: 0x2B6A72)
+            static let constant = pair(dark: 0xD0A8FF, light: 0x6C36A9)
+            static let attribute = pair(dark: 0xFD8F3F, light: 0x78492A)
+            static let property = pair(dark: 0x6BBCDD, light: 0x0F68A0)
+            static let inserted = pair(dark: 0x67D97E, light: 0x1F7F3A)
+            static let deleted = pair(dark: 0xFC6A5D, light: 0xC0301F)
+
+            private static func pair(dark: UInt32, light: UInt32) -> Color {
+                adaptive(dark: rgb(dark), light: rgb(light))
+            }
+
+            private static func rgb(_ hex: UInt32) -> NSColor {
+                NSColor(
+                    srgbRed: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+            }
+        }
     }
 }
 

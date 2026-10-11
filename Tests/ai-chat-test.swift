@@ -58,6 +58,7 @@ struct AIChatTests {
         await aConversationIsLiveOnOneSurfaceAtATime()
         await everyStateReportsAFinishedReply()
         await reasoningFoldsIntoTheReplyAndIsNeverResent()
+        reasoningShowsWithoutItsClosingBlankLines()
         chatsKeepTheirOwnModel()
         choicesComeOutOfTheirFence()
         referencesAreTheLinksAReplyCites()
@@ -1468,6 +1469,17 @@ extension AIChatTests {
         expect(
             reloaded?.messages[1].reasoning == reply?.reasoning,
             "reasoning survives reopening the chat")
+    }
+
+    static func reasoningShowsWithoutItsClosingBlankLines() {
+        func shown(_ text: String) -> String {
+            ChatReasoning(text: text, textOffset: 0, duration: 1).displayText
+        }
+        expect(shown("Let me see.\n\n") == "Let me see.", "closing blank lines are not drawn")
+        expect(shown("One.\n\nTwo. \n \t\n") == "One.\n\nTwo.", "only the end is trimmed")
+        expect(shown("  Indented\nlines") == "  Indented\nlines", "the start and the middle are kept")
+        expect(shown(" \n\n") == "", "a block of nothing shows nothing")
+        expect(shown("") == "", "an empty block stays empty")
     }
 
     /// Coming back to a chat has to come back to the model it was talking to.
