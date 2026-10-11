@@ -255,6 +255,16 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   express one state would only ever disagree.
 - **History is local and lazy.** Conversation summaries stay in memory while transcripts load from the
   system SQLite database only for the opened chat. Empty chats are never saved.
+- **A long transcript builds only its newest messages when it opens.** Every row costs about 1–2.5 ms,
+  and a researched reply has dozens (a search, a reasoning block, a tool run, up to eight source
+  chips), so building them all froze a heavy chat for most of a second. `ChatTranscriptLazyPolicy`
+  weighs each message in rows; above three budgets, `ChatTranscriptView` builds the newest messages
+  in its plain stack — the tail anchor and the end test need real heights — and leaves the older ones
+  in a `LazyVStack` above it, built as the reader scrolls up. A stepped reveal does not work: each
+  step renders for longer than its timer, so the run loop never goes idle and no frame is committed
+  until the last one. The cut is sticky for the chat, so a growing reply never moves a row between
+  stacks and loses its fold state, and find drops it for good, since it scrolls to a match in any
+  message. Chats below the threshold are built whole, as before.
 - **A rename and a pin are the reader's, and nothing derived overwrites them.** Both live in
   `conversation_details` beside `conversations`, whose `title` stays the first question: every save
   rewrites that summary, so a rename stored there would be undone by the next turn. A blank rename

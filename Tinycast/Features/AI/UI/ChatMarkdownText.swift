@@ -110,7 +110,8 @@ final class ChatSelectableTextView: NSTextView {
         measured = nil
         textStorage?.setAttributedString(output.string)
         layoutOverlays()
-        needsDisplay = true
+        // The plain flag lays the whole text out now, at the zero width a new view still has.
+        setNeedsDisplay(bounds, avoidAdditionalLayout: true)
     }
 
     /// `nil` is the ideal width. SwiftUI asks the same width repeatedly, so the last answer is kept.
@@ -183,7 +184,10 @@ final class ChatSelectableTextView: NSTextView {
         guard frame.width > 0, let layout = layoutManager, let container = textContainer else {
             return
         }
-        layout.ensureLayout(for: container)
+        // Text nobody scrolled to is never drawn, so only an overlay's own geometry needs a layout.
+        if rendered?.codeBlocks.isEmpty == false || rendered?.current != nil {
+            layout.ensureLayout(for: container)
+        }
         placeHeaders(in: layout)
         let match = rendered?.current.map { range in
             layout.boundingRect(

@@ -27,6 +27,7 @@ enum ChatChoices {
 
     /// The on-device model's fenceless form: a lone `choices` line, then only list items to the end.
     private static func labelled(_ text: String) -> (text: String, choices: [String])? {
+        guard mentionsChoices(text) else { return nil }
         var lines = text.components(separatedBy: "\n")
         while let last = lines.last, last.trimmingCharacters(in: .whitespaces).isEmpty { lines.removeLast() }
         guard let label = lines.lastIndex(where: isLabel), label < lines.count - 1 else { return nil }
@@ -40,8 +41,14 @@ enum ChatChoices {
 
     /// `choices`, as a model might dress it: bold, a heading, a trailing colon.
     private static func isLabel(_ line: String) -> Bool {
-        line.trimmingCharacters(in: .whitespaces)
+        guard mentionsChoices(line) else { return false }
+        return line.trimmingCharacters(in: .whitespaces)
             .wholeMatch(of: #/(?i)(?:#{1,6}\s*)?(?:\*\*|__)?choices:?(?:\*\*|__)?:?/#) != nil
+    }
+
+    /// A label is the word itself, so a regex per line over a whole transcript is spared the rest.
+    private static func mentionsChoices(_ text: String) -> Bool {
+        text.range(of: "choices", options: .caseInsensitive) != nil
     }
 
     private static func isListItem(_ line: String) -> Bool {

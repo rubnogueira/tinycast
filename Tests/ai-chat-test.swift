@@ -67,6 +67,7 @@ struct AIChatTests {
         chatStepsFollowTheSidebarAndWrap()
         citationsCloseTheSentenceThatCitedThem()
         toolScopeSwitchesServersPerChat()
+        longTranscriptsKeepOlderMessagesLazy()
         await usageIsKeptWithTheReplyThatReportedIt()
 
         print("\(passes) passed, \(failures) failed")
@@ -1640,6 +1641,45 @@ extension AIChatTests {
         expect(
             ChatCitations.anchors(in: text, numbers: [:]).isEmpty,
             "a reply with no sources gets no numbers")
+    }
+
+    static func longTranscriptsKeepOlderMessagesLazy() {
+        func reply(searches: Int = 0, reasoning: Int = 0) -> ChatMessage {
+            ChatMessage(
+                role: .assistant, text: "An answer.",
+                searches: (0..<searches).map {
+                    ChatSearch(query: "q\($0)", isComplete: true, textOffset: 0, sequence: $0)
+                },
+                reasoning: (0..<reasoning).map { _ in
+                    ChatReasoning(text: "t", textOffset: 0, duration: 1)
+                })
+        }
+        let plain = ChatMessage(role: .user, text: "Hi")
+        let weight = ChatTranscriptLazyPolicy.weight(of:)
+        expect(
+            weight(reply(searches: 4)) > weight(reply()),
+            "every search row is work, so a researched reply weighs more than a plain one")
+        expect(weight(reply(reasoning: 3)) > weight(reply()), "a reasoning block is a row too")
+        expect(
+            weight(ChatMessage(role: .user, text: String(repeating: "x", count: 12_000)))
+                > weight(plain),
+            "a long message weighs more than a short one")
+
+        let short = (0..<8).flatMap { _ in [plain, reply()] }
+        expect(
+            ChatTranscriptLazyPolicy.eagerStart(in: short) == 0,
+            "a chat that builds in a blink is built whole")
+        expect(ChatTranscriptLazyPolicy.eagerStart(in: []) == 0, "no messages, nothing lazy")
+
+        let heavy = (0..<9).flatMap { _ in [plain, reply(searches: 8, reasoning: 4)] }
+        let start = ChatTranscriptLazyPolicy.eagerStart(in: heavy)
+        expect(start > 0, "a chat of many researched replies leaves its older messages lazy")
+        expect(start < heavy.count, "the newest message is always built up front")
+        let spent = heavy[start...].reduce(0) { $0 + weight($1) }
+        expect(spent >= ChatTranscriptLazyPolicy.eagerBudget, "the eager rows fill their budget")
+        expect(
+            spent - weight(heavy[start]) < ChatTranscriptLazyPolicy.eagerBudget,
+            "and stop at the message that fills it, not after")
     }
 
     static func toolScopeSwitchesServersPerChat() {

@@ -28,6 +28,22 @@ struct ChatTranscriptView: View {
     var find: ChatFindHighlight?
     /// Cleared when the reader scrolls up, so a streaming reply stops dragging them back down.
     @State private var followsTail = true
+    @State private var eager: Eager?
+
+    /// Where a long chat stops being lazy, for the conversation its first message names.
+    private struct Eager {
+        var chat: UUID?
+        var start: Int
+    }
+
+    /// Sticky, so a growing reply never moves a row between stacks; find needs every row built.
+    private var eagerStart: Int {
+        if find != nil { return 0 }
+        guard let eager, eager.chat == messages.first?.id else {
+            return ChatTranscriptLazyPolicy.eagerStart(in: messages)
+        }
+        return min(eager.start, messages.count)
+    }
 
     /// Below this a backward move is momentum settling, not the reader asking for the wheel.
     private static let deliberateScroll: CGFloat = 2
@@ -41,23 +57,14 @@ struct ChatTranscriptView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                // Not lazy: every anchored jump and the end test measure an estimated height
+                // Newest rows stay non-lazy: the tail anchor and end test need real heights
                 VStack(spacing: metrics.spacing.xl) {
-                    ForEach(messages) { message in
-                        let isLast = message.id == messages.last?.id
-                        ChatMessageView(
-                            message: message,
-                            surface: surface,
-                            status: isLast ? status : nil,
-                            onRegenerate: isLast && message.role == .assistant
-                                ? onRegenerate : nil,
-                            // Only the latest reply's choices still answer anything.
-                            onChoose: isLast && message.state == .complete ? onChoose : nil
-                        )
-                        .equatable()
-                        .environment(\.chatTextHighlight, highlight(for: message.id))
-                        .id(message.id)
+                    if eagerStart > 0 {
+                        LazyVStack(spacing: metrics.spacing.xl) {
+                            rows(messages[..<eagerStart])
+                        }
                     }
+                    rows(messages[eagerStart...])
                     if let total = usage?.totalTokens {
                         Text("\(total.formatted()) tokens")
                             .font(metrics.typography.rowTrailing)
@@ -98,6 +105,12 @@ struct ChatTranscriptView: View {
                 }
             }
             .onChange(of: messages.count) { follow(proxy, always: true) }
+            .task(id: messages.first?.id) {
+                eager = Eager(chat: messages.first?.id, start: eagerStart)
+            }
+            .onChange(of: find != nil) { _, searching in
+                if searching { eager = Eager(chat: messages.first?.id, start: 0) }
+            }
             .onChange(of: find?.current) { _, current in
                 guard current != nil else { return }
                 followsTail = false
@@ -127,6 +140,24 @@ struct ChatTranscriptView: View {
         guard let find, find.matches.contains(id) else { return nil }
         return ChatTextHighlight(
             query: find.query, current: find.current?.messageID == id ? find.current : nil)
+    }
+
+    @ViewBuilder
+    private func rows(_ slice: ArraySlice<ChatMessage>) -> some View {
+        ForEach(slice) { message in
+            let isLast = message.id == messages.last?.id
+            ChatMessageView(
+                message: message,
+                surface: surface,
+                status: isLast ? status : nil,
+                onRegenerate: isLast && message.role == .assistant ? onRegenerate : nil,
+                // Only the latest reply's choices still answer anything.
+                onChoose: isLast && message.state == .complete ? onChoose : nil
+            )
+            .equatable()
+            .environment(\.chatTextHighlight, highlight(for: message.id))
+            .id(message.id)
+        }
     }
 
     /// A sent message always comes into view; a growing reply only while the reader is at the end.
