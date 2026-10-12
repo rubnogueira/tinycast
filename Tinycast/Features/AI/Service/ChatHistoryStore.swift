@@ -180,6 +180,8 @@ final class ChatHistoryStore {
     }
 
     private static let titleLimit = 120
+    /// Closes a reply cut off by a quit, as a cancel's note does: the last paragraph says why.
+    private static let interruptedNote = "Response interrupted."
 
     func session(id: UUID) -> ChatSession? {
         guard ensureDatabase(), let database else { return nil }
@@ -217,7 +219,7 @@ final class ChatHistoryStore {
             let state: ChatMessage.State
             if storedState == .streaming {
                 state = .failed
-                if body.isEmpty { body = "Response interrupted." }
+                body = body.isEmpty ? Self.interruptedNote : body + "\n\n" + Self.interruptedNote
             } else {
                 state = storedState
             }

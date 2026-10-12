@@ -26,8 +26,11 @@ struct ChatTranscriptView: View {
     /// Answers with one of the last reply's choices; nil leaves them unshown.
     var onChoose: ((String) -> Void)?
     var find: ChatFindHighlight?
+    /// Told whether the reader is at the end, for what should show only there.
+    var onFollowingChange: ((Bool) -> Void)?
     /// Cleared when the reader scrolls up, so a streaming reply stops dragging them back down.
     @State private var followsTail = true
+    @State private var settlingUntil = Date.distantPast
     @State private var eager: Eager?
 
     /// Where a long chat stops being lazy, for the conversation its first message names.
@@ -47,10 +50,13 @@ struct ChatTranscriptView: View {
 
     /// Below this a backward move is momentum settling, not the reader asking for the wheel.
     private static let deliberateScroll: CGFloat = 2
+    /// How long a sent message keeps the end, while its rows and the pane around them settle.
+    private static let sendSettle: TimeInterval = 1
 
     /// Where the reader sits and whether that is the end; a growing reply moves the end on its own.
     private struct ScrollMark: Equatable {
         var offset: CGFloat
+        var container: CGFloat
         var atEnd: Bool
     }
 
@@ -90,21 +96,37 @@ struct ChatTranscriptView: View {
             // Reopened chats start at the latest message; other anchor roles fight the reader.
             .defaultScrollAnchor(.bottom, for: .initialOffset)
             .onScrollGeometryChange(for: ScrollMark.self) { geometry in
-                ScrollMark(
+                // The window's chips are a safe-area inset, and its container already excludes one
+                let bottomInset = surface == .window ? 0 : geometry.contentInsets.bottom
+                return ScrollMark(
                     offset: geometry.contentOffset.y,
+                    container: geometry.containerSize.height,
                     // The offset rests at `-insetTop`, and the bottom inset is a band the end stops above
                     atEnd: geometry.contentOffset.y + geometry.containerSize.height
-                        + geometry.contentInsets.top - geometry.contentInsets.bottom
+                        + geometry.contentInsets.top - bottomInset
                         >= geometry.contentSize.height - metrics.spacing.chatFollowTailSlack)
             } action: { old, new in
+                let resized = new.container != old.container
+                let settling = Date.now < settlingUntil
                 // The offset is the only signal every device gives; the end wins, tested first
                 if new.atEnd {
                     followsTail = true
-                } else if new.offset < old.offset - Self.deliberateScroll {
+                } else if !resized, !settling, new.offset < old.offset - Self.deliberateScroll {
                     followsTail = false
                 }
+                // A scroll asked from inside this layout pass is lost, so the re-pin waits a turn
+                if followsTail, resized || settling || (!new.atEnd && new.offset >= old.offset) {
+                    Task { @MainActor in follow(proxy, always: false) }
+                }
             }
-            .onChange(of: messages.count) { follow(proxy, always: true) }
+            .onChange(of: followsTail, initial: true) { _, following in
+                onFollowingChange?(following)
+            }
+            .onChange(of: messages.count) {
+                followsTail = true
+                settlingUntil = Date.now.addingTimeInterval(Self.sendSettle)
+                follow(proxy, always: true)
+            }
             .task(id: messages.first?.id) {
                 eager = Eager(chat: messages.first?.id, start: eagerStart)
             }
@@ -129,6 +151,8 @@ struct ChatTranscriptView: View {
                     follow(proxy, always: true)
                 }
                 .padding(.bottom, metrics.spacing.lg)
+                // Over the window's reserved chips band, so it sits right above the composer
+                .ignoresSafeArea(edges: surface == .window ? .bottom : [])
                 .opacity(followsTail ? 0 : 1)
                 .allowsHitTesting(!followsTail)
                 .animation(.easeOut(duration: Theme.Duration.chatFooter), value: followsTail)
@@ -284,7 +308,7 @@ private struct ChatMessageView: View, @MainActor Equatable {
         } else {
             bubbleContent
                 .font(metrics.typography.rowTitle)
-                .foregroundStyle(message.state == .failed ? Theme.Colors.destructive : .primary)
+                .foregroundStyle(.primary)
                 .textSelection(.enabled)
                 // The user bubble is inset because it carries a fill; a reply clears the chevron
                 .padding(.horizontal, message.role == .user ? metrics.spacing.xl : replyInset)
@@ -331,11 +355,14 @@ private struct ChatMessageView: View, @MainActor Equatable {
                     Group {
                         switch segment {
                         case .text(let text):
+                            let blocks = MarkdownBlock.parse(
+                                ChatChoices.split(text).text,
+                                midStream: message.isArriving(segmentAt: offset, of: segments.count))
                             ChatMarkdownText(
-                                blocks: MarkdownBlock.parse(
-                                    ChatChoices.split(text).text,
-                                    midStream: message.isArriving(segmentAt: offset, of: segments.count)),
-                                failed: message.state == .failed)
+                                blocks: blocks,
+                                // A failed reply ends on the note saying why, which is the error
+                                failedFrom: message.state == .failed && offset == segments.count - 1
+                                    ? max(blocks.count - 1, 0) : nil)
                         case .search(let search):
                             ChatSearchRow(search: search)
                         case .tools(let uses):

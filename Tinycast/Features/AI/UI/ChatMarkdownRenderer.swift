@@ -7,7 +7,8 @@ struct ChatMarkdownSource: Equatable {
     let highlight: ChatTextHighlight?
     let citations: [String: Int]
     let prefix: [Int]
-    let failed: Bool
+    /// The first block of a failed reply's closing note, drawn as an error; the rest is the reply.
+    let failedFrom: Int?
     let metrics: InterfaceMetrics
 }
 
@@ -90,11 +91,16 @@ struct ChatMarkdownRenderer {
         var textBlocks: [NSTextBlock] = []
         var indent: CGFloat = 0
         var secondary = false
+        var failed = false
     }
 
     func render() -> ChatRenderedText {
         let output = Output()
-        render(source.blocks, at: source.prefix, in: Context(), into: output)
+        let split = min(source.failedFrom ?? source.blocks.count, source.blocks.count)
+        render(Array(source.blocks[..<split]), at: source.prefix, in: Context(), into: output)
+        render(
+            Array(source.blocks[split...]), at: source.prefix, in: Context(failed: true),
+            into: output, first: split)
         // The last paragraph's own break would draw an empty line under the reply.
         if output.string.string.hasSuffix("\n") {
             output.string.deleteCharacters(in: NSRange(location: output.string.length - 1, length: 1))
@@ -113,7 +119,7 @@ struct ChatMarkdownRenderer {
     private var bodyFont: NSFont { typography.textNSFont(.body) }
 
     private func textColor(_ context: Context) -> NSColor {
-        if source.failed { return NSColor(Theme.Colors.destructive) }
+        if context.failed { return NSColor(Theme.Colors.destructive) }
         return context.secondary ? NSColor(Theme.Colors.textSecondary) : .labelColor
     }
 
@@ -414,7 +420,7 @@ struct ChatMarkdownRenderer {
         style.headIndent = 0
         let body = NSMutableAttributedString(
             string: text, attributes: [.font: font, .foregroundColor: textColor(context)])
-        if !source.failed { colorSyntax(of: body, language: language) }
+        if !context.failed { colorSyntax(of: body, language: language) }
         mark(body, leaf: leaf)
         let start = output.string.length
         body.append(NSAttributedString(string: "\n", attributes: [.font: font]))

@@ -124,8 +124,16 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   transcript, centred, each wrapped row on its own mid-width (`ChatFlowLayout(centersRows:)`; the
   sources keep the leading edge): in the window they sit on a transparent strip, a bottom safe-area inset of the
   transcript, so the transcript scrolls beneath them instead of ending above, and they rise out of
-  the composer until the reader starts typing (the tail-follow test subtracts that inset); in Quick
-  AI they close the transcript. A click sends the option as the reader's next message, through the same `send` a
+  the composer until the reader starts typing (the window's tail-follow test leaves that inset out:
+  its container already excludes a safe-area inset, so subtracting it too read "short of the end"
+  at the end), and they fade out while the reader is off the end, since an answer under a half-read
+  reply is out of place; the inset stays while they are faded, so showing them never covers the last
+  lines. A pane that resizes (the chips leaving on a send, arriving when a reply ends, a taller
+  composer) moves the offset by itself, so a change of container is never read as the reader
+  scrolling up, and a transcript that follows re-pins to the end on the next turn, since a scroll
+  asked from inside the geometry callback itself is lost and would leave the last lines under the
+  chips. In Quick AI they close
+  the transcript. A click sends the option as the reader's next message, through the same `send` a
   typed one takes. Older replies lose their chips, since only the last question is still open. It is text in, text out, so it
   works on every route — and not at all with the system prompt switched off, which drops the
   preamble that describes it.
@@ -265,6 +273,11 @@ bottom with the model picker. ⌘J hands a Quick AI conversation to the window.
   until the last one. The cut is sticky for the chat, so a growing reply never moves a row between
   stacks and loses its fold state, and find drops it for good, since it scrolls to a match in any
   message. Chats below the threshold are built whole, as before.
+- **A failed reply ends on a note saying why, and only the note reads as an error.** A cancel, an
+  error and a reply cut off by a quit each close the reply's text with a last paragraph (`Cancelled`,
+  the error, `Response interrupted.`, which `ChatHistoryStore` adds on load). The transcript draws
+  the reply as it was written and hands the markdown renderer `failedFrom`, the first block of that
+  note, so what was written before the stop is never red; a note on its own is the whole text.
 - **A rename and a pin are the reader's, and nothing derived overwrites them.** Both live in
   `conversation_details` beside `conversations`, whose `title` stays the first question: every save
   rewrites that summary, so a rename stored there would be undone by the next turn. A blank rename
@@ -668,7 +681,8 @@ window, and every chat action either surface sends — is the nineteenth feature
 - In the window, a code block's right edge sits on the sent messages' and on the composer's, and
   its left edge on the composer's; in Quick AI replies keep their gap at the right.
 - Suggested replies are glass capsules on a strip with no background of its own: scroll a long reply
-  up and its text and code pass under the strip, with "Jump to Latest" sitting above the chips.
+  up and they fade out, with "Jump to Latest" above the empty strip and the text and code passing
+  under it; scroll back to the end, or click "Jump to Latest", and they fade back in.
 - Suggested replies sit centred over the composer's column, and when they wrap each row is centred.
 - Ask for a reply with `#`, `##` and `###` headings, a list and a quote: each heading is visibly larger
   than the text, the largest first, with room above it and the text just below it, and the paragraphs

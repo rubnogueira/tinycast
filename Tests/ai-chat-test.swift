@@ -667,8 +667,8 @@ struct AIChatTests {
             "attached images travel with the request")
         expect(loaded?.messages.last?.state == .failed, "an interrupted stream is repaired")
         expect(
-            loaded?.messages.last?.text == "Partial",
-            "an interrupted partial answer is preserved")
+            loaded?.messages.last?.text == "Partial\n\nResponse interrupted.",
+            "an interrupted partial answer is kept and closed by a note, as a cancel's is")
 
         reopened.remove(id: id)
         expect(reopened.conversations.isEmpty, "deleting a chat removes its summary")

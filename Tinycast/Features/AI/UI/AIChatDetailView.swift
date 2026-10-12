@@ -7,6 +7,7 @@ struct AIChatDetailView: View {
     @Environment(ChatFindState.self) private var find
     @State private var isDropTargeted = false
     @State private var showsContext = false
+    @State private var atBottom = true
 
     private var chat: AIChatState { coordinator.chats.window }
 
@@ -76,11 +77,19 @@ struct AIChatDetailView: View {
                     .padding(.top, Theme.Spacing.xs)
                     .padding(.bottom, Theme.Spacing.md)
                     .frame(maxWidth: .infinity)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    // Faded, not removed: the inset stays, so they never cover the last lines
+                    .opacity(atBottom ? 1 : 0)
+                    .allowsHitTesting(atBottom)
+                    .accessibilityHidden(!atBottom)
+                    // They rise in, but leave at once: sliding down they would cross the new text
+                    .transition(
+                        .asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity), removal: .identity))
             }
         }
         .animation(.snappy, value: suggestions)
         .animation(.snappy, value: chat.draft.isEmpty)
+        .animation(.easeOut(duration: Theme.Duration.chatFooter), value: atBottom)
     }
 
     @ViewBuilder private var content: some View {
@@ -101,7 +110,8 @@ struct AIChatDetailView: View {
                     ? ChatFindHighlight(
                         query: find.needle, matches: Set(occurrences.map(\.messageID)),
                         current: find.currentOccurrence(in: occurrences))
-                    : nil
+                    : nil,
+                onFollowingChange: { atBottom = $0 }
             )
             // A switched chat is a new scroll: its own tail-following, opening at its latest line.
             .id(chat.session.id)
