@@ -323,6 +323,17 @@ picker. ⌘J hands a Quick AI conversation to the window.
   express one state would only ever disagree.
 - **History is local and lazy.** Conversation summaries stay in memory while transcripts load from the
   system SQLite database only for the opened chat. Empty chats are never saved.
+- **A long transcript builds only its newest messages when it opens.** Every row costs about 1–2.5 ms,
+  and a researched reply has dozens (a search, a reasoning block, a tool run, up to eight source
+  chips), so building them all froze a heavy chat for most of a second. `ChatTranscriptLazyPolicy`
+  weighs each message in rows; above three budgets, `ChatTranscriptView` builds the newest messages
+  in its plain stack — the tail anchor and the end test need real heights — and leaves the older ones
+  in a `LazyVStack` above it, built as the reader scrolls up. A stepped reveal does not work: each
+  step renders for longer than its timer, so the run loop never goes idle and no frame is committed
+  until the last one. The cut is sticky for the chat, so a growing reply never moves a row between
+  stacks and loses its fold state. Find builds every row, since it scrolls to a match in any message,
+  and the cut returns once find has ended and the reader is back at the end, where moving the old
+  rows goes unseen. Chats below the threshold are built whole.
 - **A failed reply ends on a note saying why, and only the note reads as an error.** A cancel, an
   error and a reply cut off by a quit each close the reply's text with a last paragraph (`Cancelled`,
   the error, `Response interrupted.`, which `ChatHistoryStore` adds on load). The transcript hands
@@ -591,8 +602,13 @@ and the Actions menu's own chords, and dies with the window.
   sidebar clears a nonempty filter before a second Escape closes. Closing leaves a reply streaming;
   the next open follows `Opens to`, except that a chat holding a draft or staged files is kept.
 
-- **Sidebar** (`AIChatSidebarView`): a filter field over a `List` of every saved chat, Pinned
-  first and then bucketed by day like Clipboard. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥ open
+- **Sidebar** (`AIChatSidebarView`): a filter field over a `List` of the saved chats, Pinned
+  first and then bucketed by day like Clipboard. The `List` is fed thirty rows at a time: the next
+  thirty load when the row eight from the end scrolls into view, so a reader scrolling down never
+  reaches the end, and a `Show More` end row backs that up where a tall pane shows everything loaded:
+  SwiftUI's sidebar `List` diffs its rows in quadratic time, so 3,000 chats held the main thread for
+  about nine seconds on every open, and a flat list was worse. The filter still searches every chat
+  and starts over at one page. The open chat is the selected row; ⌃⇥ / ⌃⇧⇥ open
   the next or previous one, wrapping, over every saved chat whatever the filter shows. ⌘B shows or
   hides the sidebar. A new chat has none until its first message saves it, so starting one or
   leaving an empty one never adds or drops a row under the pointer. A row shows a spinner while its reply streams, else a pin when

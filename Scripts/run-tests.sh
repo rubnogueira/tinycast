@@ -898,6 +898,7 @@ run AIChatTests            Tinycast/Features/AI/Model/AIRequest.swift \
                            Tinycast/Features/AI/Model/ChatFind.swift \
                            Tinycast/Features/AI/Model/ChatCitations.swift \
                            Tinycast/Features/AI/Model/ChatToolScope.swift \
+                           Tinycast/Features/AI/Model/ChatTranscriptLazyPolicy.swift \
                            Tinycast/Features/AI/Model/MarkdownBlock.swift \
                            Tinycast/Features/AI/Model/MarkdownMath.swift \
                            Tinycast/Features/AI/Model/MathFormula.swift \
