@@ -33,6 +33,17 @@ private final class InstalledCLITurnRunner {
         commands, read files, inspect the environment, access external resources, or modify \
         anything except through them.
         """
+    private static let webSafetyInstructions = """
+        You are generating text inside Tinycast. The only tools you may use are the web search and \
+        web fetch tools supplied with this request. Do not run commands, read files, inspect the \
+        environment, or modify anything.
+        """
+    private static let webToolSafetyInstructions = """
+        You are generating text inside Tinycast. The only tools you may use are the web search and \
+        web fetch tools and the MCP tools supplied with this request, and you may use the MCP tools \
+        for anything they offer. Do not run commands, read files, inspect the environment, access \
+        other external resources, or modify anything except through them.
+        """
 
     private static var maximumPartialLineBytes: Int {
         if let raw = ProcessInfo.processInfo.environment["TC_INSTALLED_MAX_LINE_BYTES"],
@@ -66,6 +77,9 @@ private final class InstalledCLITurnRunner {
     private var activeExecutable: URL?
     /// What this turn armed, empty on every route and every turn that offers no server.
     private var activeServers: [AIToolServer] = []
+    /// Only Claude has web tools of its own, and only a turn asked to search offers them.
+    private var activeWeb = false
+    private var openSearches: Set<String> = []
     private var exitStatus: Int32?
     private var outputClosed = false
     private var input: FileHandle?
@@ -162,6 +176,8 @@ private final class InstalledCLITurnRunner {
         }
 
         activeServers = await resolvedToolServers()
+        activeWeb = kind == .claude && request.webSearch
+        openSearches = []
         let prompt = prompt(for: request)
         let images = request.messages.last { $0.role == .user }?.images ?? []
         var files: [URL] = []
@@ -366,7 +382,20 @@ private final class InstalledCLITurnRunner {
     }
 
     /// Nothing to call is one request; an armed turn takes the reader's cap, which may be none.
-    private var roundCap: Int? { activeServers.isEmpty ? 1 : toolServers?.rounds }
+    private var roundCap: Int? {
+        guard !activeServers.isEmpty || activeWeb else { return 1 }
+        return toolServers.map(\.rounds) ?? AIToolRounds.twentyFive.limit
+    }
+
+    private var safetyInstructions: String {
+        let armed = !activeServers.isEmpty || toolSession?.tools.isEmpty == false
+        switch (armed, activeWeb) {
+        case (false, false): return Self.safetyInstructions
+        case (true, false): return Self.toolSafetyInstructions
+        case (false, true): return Self.webSafetyInstructions
+        case (true, true): return Self.webToolSafetyInstructions
+        }
+    }
 
     private func arguments(promptFile: URL?, mcpConfig: URL?, attachments: [URL]) -> [String] {
         switch kind {
@@ -382,20 +411,25 @@ private final class InstalledCLITurnRunner {
                 "--include-partial-messages",
                 "--no-session-persistence",
                 "--disable-slash-commands",
-                "--tools", "",
+                "--tools", ClaudeWebTools.builtIns(offered: activeWeb),
                 // `--bare` is not among these: it refuses the OAuth sign-in this whole route reuses.
                 "--no-chrome",
                 "--system-prompt",
-                mcpConfig == nil ? Self.safetyInstructions : Self.toolSafetyInstructions
+                safetyInstructions
             ]
             if let mcpConfig {
                 result += ClaudeMCPLaunch.arguments(
                     configurationPath: mcpConfig.path, handles: activeServers.map(\.handle),
                     rounds: roundCap)
             } else {
-                // A route with nothing to call keeps every tool off and the turn to one request.
-                result += ["--disallowedTools", "*", "--max-turns", "1"]
+                if !activeWeb {
+                    // A route with nothing to call keeps every tool off and the turn to one request.
+                    result += ["--disallowedTools", "*", "--max-turns", "1"]
+                }
                 result += InstalledAIManager.claudeWithoutMCPArguments
+            }
+            if activeWeb {
+                result += ClaudeWebTools.arguments(rounds: roundCap, withServers: mcpConfig != nil)
             }
             if let effort { result += ["--effort", effort] }
             return result
@@ -455,10 +489,7 @@ private final class InstalledCLITurnRunner {
     }
 
     private func prompt(for request: AIRequest) -> String {
-        var sections = [
-            activeServers.isEmpty && toolSession?.tools.isEmpty != false
-                ? Self.safetyInstructions : Self.toolSafetyInstructions
-        ]
+        var sections = [safetyInstructions]
         if let instructions = request.instructions?.trimmingCharacters(in: .whitespacesAndNewlines),
             !instructions.isEmpty
         {
@@ -513,6 +544,10 @@ private final class InstalledCLITurnRunner {
             return
         }
         for event in frame.events { continuation?.yield(event) }
+        openSearches.formUnion(frame.searchCallIDs)
+        for id in frame.answeredCallIDs where openSearches.remove(id) != nil {
+            continuation?.yield(.searched(nil))
+        }
         if frame.stoppedAtRoundCap {
             fail(
                 roundCap.map { String(localized: "Stopped after \($0) rounds of tool calls.") }
@@ -697,6 +732,8 @@ private final class InstalledCLITurnRunner {
         removePrivateFiles()
         activeExecutable = nil
         activeServers = []
+        activeWeb = false
+        openSearches = []
         write(Data(), closing: true)
     }
 }

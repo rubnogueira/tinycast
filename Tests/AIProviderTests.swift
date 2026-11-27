@@ -219,6 +219,8 @@ struct AIProviderTests {
         claudeConfigurationCarriesServersAndRoutesToolNames()
         codexElicitationsAreOnlyToolCalls()
         claudeControlFramesAnswerOneTool()
+        claudeReachesTheWebOnlyWhenAsked()
+        anthropicRunsItsOwnWebTools()
         aGatewayOffersNoneAsItsReasoningEffort()
         declaredLevelsNeverOutliveTheirDestination()
         vendorsTakeTheirOwnDeclaredLevels()
@@ -358,9 +360,9 @@ struct AIProviderTests {
             configuration: anthropic)
         let tools = body["tools"] as? [[String: Any]] ?? []
         expect(
-            tools.map { $0["name"] as? String } == [tool.name, "web_search"]
-                && tools.last?["type"] as? String == "web_search_20250305",
-            "Anthropic's search rides beside the client tools as its server tool")
+            tools.map { $0["name"] as? String } == [tool.name, "web_search", "web_fetch"]
+                && tools.dropFirst().first?["type"] as? String == "web_search_20250305",
+            "Anthropic's search and fetch ride beside the client tools as its server tools")
         let quiet = AIRequestBody.make(
             AIRequest(messages: [AIMessage(role: .user, text: "news")]), configuration: anthropic)
         expect(quiet["tools"] == nil, "search off adds no tool")
@@ -2691,6 +2693,275 @@ struct AIProviderTests {
             CodexElicitation.Action.accept.rawValue == "accept"
                 && CodexElicitation.Action.decline.rawValue == "decline",
             "the two answers are the two the app-server honours")
+    }
+
+    /// Frames are the shapes a real `claude -p` turn printed, with only the ids shortened.
+    static func claudeReachesTheWebOnlyWhenAsked() {
+        expect(
+            ClaudeWebTools.builtIns(offered: true) == "WebSearch,WebFetch"
+                && ClaudeWebTools.builtIns(offered: false).isEmpty,
+            "the web tools are the only built-ins Claude is ever handed, and only when asked")
+        expect(
+            ClaudeWebTools.arguments(rounds: 25, withServers: false) == [
+                "--allowedTools", "WebSearch,WebFetch", "--permission-mode", "dontAsk",
+                "--max-turns", "25"
+            ],
+            "a web-only turn pre-allows both tools, refuses the rest and takes the reader's cap")
+        expect(
+            !ClaudeWebTools.arguments(rounds: nil, withServers: false).contains("--max-turns"),
+            "Unlimited passes no cap at all")
+        expect(
+            ClaudeWebTools.arguments(rounds: 25, withServers: true) == [
+                "--allowedTools", "WebSearch,WebFetch"
+            ],
+            "with servers armed the MCP flags keep the permission mode and the cap")
+        expect(
+            AIModelCapabilities.claudeCommand.webSearch,
+            "the Claude command offers the web search switch")
+
+        expect(
+            ClaudeWebTools.fetchTitle("https://www.rust-lang.org/") == "www.rust-lang.org"
+                && ClaudeWebTools.fetchTitle("https://example.com/a/b?utm=1#top") == "example.com/a/b",
+            "a fetched page is named by host and path, without the query or the fragment")
+        expect(
+            ClaudeWebTools.fetchTitle("not an address") == "not an address"
+                && ClaudeWebTools.fetchTitle(nil).isEmpty,
+            "an address that does not parse is shown as written, and an absent one as nothing")
+        expect(
+            ClaudeWebTools.fetchTitle("https://example.com/" + String(repeating: "a", count: 200))
+                .count <= AIToolServerRow.maxNameLength + 1,
+            "a very long address stays one line")
+
+        let search = Data(
+            #"""
+            {"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_s",\#
+            "name":"WebSearch","input":{"query":"swift 6"}}]}}
+            """#.utf8)
+        let searchFrame = InstalledAIStreamDecoder.decode(search, kind: .claude)
+        expect(
+            searchFrame.events == [.searching("swift 6")] && searchFrame.searchCallIDs == ["toolu_s"],
+            "a WebSearch call opens a search row and names its call for the runner")
+        let fetch = Data(
+            #"""
+            {"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_f",\#
+            "name":"WebFetch","input":{"url":"https://www.rust-lang.org/","prompt":"heading"}}]}}
+            """#.utf8)
+        let fetchFrame = InstalledAIStreamDecoder.decode(fetch, kind: .claude)
+        expect(
+            fetchFrame.events == [
+                .toolCall(
+                    id: "toolu_f", origin: ClaudeWebTools.origin, title: "www.rust-lang.org")
+            ] && fetchFrame.searchCallIDs.isEmpty,
+            "a WebFetch call is a tool row led by the page, and never a search")
+        let answers = Data(
+            #"""
+            {"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"toolu_f",\#
+            "content":"ok"},{"type":"tool_result","tool_use_id":"toolu_s","is_error":true,\#
+            "content":"no"}]}}
+            """#.utf8)
+        let answersFrame = InstalledAIStreamDecoder.decode(answers, kind: .claude)
+        expect(
+            answersFrame.events == [
+                .toolResult(id: "toolu_f", isError: false), .toolResult(id: "toolu_s", isError: true)
+            ] && answersFrame.answeredCallIDs == ["toolu_f", "toolu_s"],
+            "results come back in whatever order they finish, each named by its own call")
+        expect(
+            InstalledAIStreamDecoder.decode(search, kind: .grok).events.isEmpty
+                && InstalledAIStreamDecoder.decode(answers, kind: .grok).events.isEmpty,
+            "Grok shares the frame shape but never the web tools")
+        let mcp = Data(
+            #"""
+            {"type":"assistant","message":{"content":[{"type":"tool_use","id":"toolu_m",\#
+            "name":"mcp__files__read","input":{}}]}}
+            """#.utf8)
+        expect(
+            InstalledAIStreamDecoder.decode(mcp, kind: .claude).events.isEmpty,
+            "a server's call is a row only on a turn that armed one")
+    }
+
+    /// The shapes are the ones Anthropic documents for streaming web search and web fetch.
+    static func anthropicRunsItsOwnWebTools() {
+        let configuration = AIHTTPConfiguration(
+            provider: .anthropic, baseURL: URL(string: "https://api.anthropic.com")!,
+            model: "claude")
+        let question = [AIMessage(role: .user, text: "news?")]
+        expect(
+            AIRequestBody.make(AIRequest(messages: question), configuration: configuration)["tools"]
+                == nil,
+            "without the switch a request names no tool at all")
+        let searching = AIRequestBody.make(
+            AIRequest(messages: question, webSearch: true), configuration: configuration)
+        let server = (searching["tools"] as? [[String: Any]]) ?? []
+        expect(
+            server.map { $0["type"] as? String } == ["web_search_20250305", "web_fetch_20250910"]
+                && server.map { $0["name"] as? String } == ["web_search", "web_fetch"],
+            "with it Anthropic is handed its two server tools, in their basic versions")
+        expect(
+            server.allSatisfy { $0["max_uses"] as? Int == 5 }
+                && server.last?["max_content_tokens"] as? Int == 25_000,
+            "each is capped in uses, and a fetched page in size")
+        let tool = AITool(
+            name: "fs__read", description: "Reads a file.",
+            parameters: .object(["type": .string("object")]), origin: "Files", title: "read")
+        let both = AIRequestBody.make(
+            AIRequest(messages: question, webSearch: true, tools: [tool]),
+            configuration: configuration)
+        let combined = (both["tools"] as? [[String: Any]]) ?? []
+        expect(
+            combined.count == 3 && combined.first?["name"] as? String == "fs__read"
+                && combined.first?["input_schema"] != nil,
+            "a reader's own tools keep their shape beside the server's")
+        let openAI = AIRequestBody.make(
+            AIRequest(messages: question, webSearch: true),
+            configuration: AIHTTPConfiguration(
+                provider: .openAI, baseURL: URL(string: "https://gateway.example/v1")!, model: "m"))
+        expect(
+            openAI["tools"] == nil && openAI["plugins"] == nil,
+            "an OpenAI-shaped vendor is never sent a field it does not define")
+
+        let ownAPI = AIConnection(provider: .anthropic, models: ["claude"])
+        let padded = AIConnection(
+            provider: .anthropic, baseURL: " https://api.anthropic.com ", models: ["claude"])
+        let gateway = AIConnection(
+            provider: .anthropic, baseURL: "https://gateway.example", models: ["claude"])
+        expect(
+            ownAPI.capabilities(for: "claude").webSearch
+                && padded.capabilities(for: "claude").webSearch
+                && !gateway.capabilities(for: "claude").webSearch,
+            "Anthropic's own endpoint searches; a gateway in front of it is never sent the tools")
+
+        var decoder = AIStreamDecoder(shape: .anthropic)
+        let stream = Data(
+            #"""
+            data: {"type":"message_start","message":{"usage":{"input_tokens":4}}}
+
+            data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Looking."}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: {"type":"content_block_start","index":1,\#
+                "content_block":{"type":"server_tool_use","id":"srvtoolu_1","name":"web_search"}}
+
+            data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{\"que"}}
+
+            data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"ry\":\"swift 6\"}"}}
+
+            data: {"type":"content_block_stop","index":1}
+
+            data: {"type":"content_block_start","index":2,"content_block":{\#
+                "type":"web_search_tool_result","tool_use_id":"srvtoolu_1",\#
+                "content":[{"type":"web_search_result","title":"Swift","url":"https://swift.org"}]}}
+
+            data: {"type":"content_block_stop","index":2}
+
+            data: {"type":"content_block_start","index":3,\#
+                "content_block":{"type":"server_tool_use","id":"srvtoolu_2","name":"web_fetch"}}
+
+            data: {"type":"content_block_delta","index":3,\#
+                "delta":{"type":"input_json_delta","partial_json":"{\"url\":\"https://swift.org/blog/\"}"}}
+
+            data: {"type":"content_block_stop","index":3}
+
+            data: {"type":"content_block_start","index":4,"content_block":{\#
+                "type":"web_fetch_tool_result","tool_use_id":"srvtoolu_2","content":{\#
+                "type":"web_fetch_result","url":"https://swift.org/blog/","content":{\#
+                "type":"document","source":{"type":"text","media_type":"text/plain","data":"Hi"}}}}}
+
+            data: {"type":"content_block_stop","index":4}
+
+            data: {"type":"content_block_start","index":5,"content_block":{"type":"text","text":""}}
+
+            data: {"type":"content_block_delta","index":5,"delta":{"type":"text_delta","text":"Done."}}
+
+            data: {"type":"content_block_delta","index":5,"delta":{"type":"citations_delta",\#
+                "citation":{"type":"web_search_result_location","url":"https://swift.org",\#
+                "title":"Swift","cited_text":"x","encrypted_index":"abc"}}}
+
+            data: {"type":"content_block_stop","index":5}
+
+            data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":9}}
+
+            data: {"type":"message_stop"}
+
+
+            """#.utf8)
+        var events = (try? decoder.feed(stream)) ?? []
+        events += (try? decoder.finish()) ?? []
+        let visible = events.filter {
+            switch $0 {
+            case .usage, .finished: return false
+            default: return true
+            }
+        }
+        expect(
+            visible == [
+                .text("Looking."), .searching(nil), .searched("swift 6"),
+                .toolCall(id: "srvtoolu_2", origin: ClaudeWebTools.origin, title: "swift.org/blog/"),
+                .toolResult(id: "srvtoolu_2", isError: false), .text("Done."),
+                .text(" ([swift.org](https://swift.org))")
+            ] && events.last == .finished,
+            "a search and a fetch become their rows in order, and a citation follows its block")
+
+        var refused = AIStreamDecoder(shape: .anthropic)
+        let refusal = Data(
+            #"""
+            data: {"type":"content_block_start","index":0,"content_block":{\#
+                "type":"web_fetch_tool_result","tool_use_id":"srvtoolu_3","content":{\#
+                "type":"web_fetch_tool_result_error","error_code":"url_not_accessible"}}}
+
+
+            """#.utf8)
+        expect(
+            ((try? refused.feed(refusal)) ?? []) == [.toolResult(id: "srvtoolu_3", isError: true)],
+            "a fetch the API could not make is a failed row, and its error object still decodes")
+
+        var mixed = AIStreamDecoder(shape: .anthropic)
+        let mixedStream = Data(
+            #"""
+            data: {"type":"content_block_start","index":0,\#
+                "content_block":{"type":"server_tool_use","id":"srvtoolu_4","name":"web_search"}}
+
+            data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_1","name":"fs__read"}}
+
+            data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\"query\":\"q\"}"}}
+
+            data: {"type":"content_block_delta","index":1,\#
+                "delta":{"type":"input_json_delta","partial_json":"{\"path\":\"/tmp\"}"}}
+
+            data: {"type":"content_block_stop","index":0}
+
+            data: {"type":"content_block_stop","index":1}
+
+            data: {"type":"content_block_start","index":2,\#
+                "content_block":{"type":"web_search_tool_result","content":[]}}
+
+            data: {"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":2}}
+
+
+            """#.utf8)
+        let mixedEvents = (try? mixed.feed(mixedStream)) ?? []
+        expect(
+            mixedEvents.contains(.searched("q"))
+                && mixedEvents.contains(
+                    .toolCallRequested(
+                        AIToolCall(id: "toolu_1", name: "fs__read", arguments: #"{"path":"/tmp"}"#))),
+            "a server call and a client call streaming side by side never swap their arguments")
+
+        var paused = AIStreamDecoder(shape: .anthropic)
+        let pause = Data(
+            #"""
+            data: {"type":"message_delta","delta":{"stop_reason":"pause_turn"},"usage":{"output_tokens":2}}
+
+
+            """#.utf8)
+        var pauseError: Error?
+        do { _ = try paused.feed(pause) } catch { pauseError = error }
+        expect(
+            (pauseError as? AIProviderError)?.errorDescription?.contains("paused") == true
+                && paused.isTerminal,
+            "a paused turn fails with a reason rather than ending as though it had finished")
     }
 
     private static let canUseToolFrame = """

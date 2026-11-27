@@ -37,6 +37,7 @@ struct FileSearchTests {
         ignorePathMatching()
         policy()
         scopes()
+        access()
         resultModel()
         previewKind()
 
@@ -435,6 +436,94 @@ struct FileSearchTests {
             "a bare tilde expands to home itself")
         expect(FileSearchScope.contains("/", "/Users"), "the disk root contains everything")
         expect(!FileSearchScope.contains("/Users/a", "/Users/ab"), "containment is per component")
+        expect(
+            FileSearchScope.join("/", "Users") == "/Users"
+                && FileSearchScope.join("/Users", "test") == "/Users/test",
+            "joining never doubles the root's slash")
+    }
+
+    static func fullDiskRoots(_ scopes: [String], ignoring patterns: [String] = []) -> [String] {
+        FileSearchAccess.rootsNeedingFullDiskAccess(
+            FileSearchPolicy(
+                scopes: scopes, ignorePatterns: patterns, includesHiddenFiles: false,
+                homeDirectory: home))
+    }
+
+    static func probed(_ scopes: [String], ignoring patterns: [String] = []) -> [String] {
+        FileSearchAccess.foldersToProbe(
+            FileSearchPolicy(
+                scopes: scopes, ignorePatterns: patterns, includesHiddenFiles: false,
+                homeDirectory: home))
+    }
+
+    static func access() {
+        expect(
+            fullDiskRoots(FileSearchScope.defaultScopes, ignoring: FileSearchIgnoreList.defaults)
+                == ["/Users/test"],
+            "the default home scope still reaches Safari and Messages, so it needs Full Disk Access")
+        expect(fullDiskRoots(["/"]) == ["/"], "the whole disk needs Full Disk Access")
+        expect(fullDiskRoots(["~"]) == ["/Users/test"], "home holds Mail, Safari and the Trash")
+        expect(
+            fullDiskRoots(["~/Library"]) == ["/Users/test/Library"], "Library holds protected data")
+        expect(
+            fullDiskRoots(["~/Library/Mail/V10"]) == ["/Users/test/Library/Mail/V10"],
+            "a scope inside a protected folder needs it too")
+        expect(
+            fullDiskRoots(["~/Library/Application Support"]) == ["/Users/test/Library/Application Support"],
+            "a folder that only contains a protected one needs it")
+        expect(fullDiskRoots(["/Library"]) == ["/Library"], "the system TCC folder counts")
+
+        for scope in [
+            "~/Developer", "~/Documents", "~/Desktop", "~/Downloads", "/Applications",
+            "/Users/Shared", "/Volumes/Work", "~/Library/Application Support/Tinycast",
+            "~/Library/Mobile Documents/com~apple~CloudDocs"
+        ] {
+            expect(fullDiskRoots([scope]).isEmpty, "\(scope) needs no Full Disk Access")
+        }
+        expect(fullDiskRoots([]).isEmpty, "a cleared scope list needs nothing")
+        expect(
+            fullDiskRoots(["~/Developer", "~/Library"]) == ["/Users/test/Library"],
+            "only the scope that reaches a protected folder is named")
+
+        expect(
+            !fullDiskRoots(["~"], ignoring: ["~/Library"]).isEmpty,
+            "ignoring Library alone leaves the Trash")
+        expect(
+            fullDiskRoots(["~"], ignoring: ["~/Library", "~/.Trash"]).isEmpty,
+            "ignoring every protected folder under home needs nothing")
+        expect(
+            !fullDiskRoots(["~"], ignoring: ["Mail", "Safari"]).isEmpty,
+            "ignoring some protected folders still reaches the rest")
+        expect(
+            fullDiskRoots(["~/Library"], ignoring: ["~/Library"]) == ["/Users/test/Library"],
+            "a root is never matched by its own ignore pattern")
+        expect(
+            !fullDiskRoots(["/"], ignoring: ["~/Library", "~/.Trash"]).isEmpty,
+            "the whole disk still reaches the system folders")
+        expect(
+            fullDiskRoots(["~"], ignoring: ["Library", ".Trash"]).isEmpty,
+            "a bare name hides the folder wherever it lies")
+
+        expect(
+            probed(["~/Documents", "~/Developer"]) == ["/Users/test/Documents", "/Users/test/Developer"],
+            "the roots are what gets asked about")
+        expect(
+            probed(["~"], ignoring: ["~/Library", "~/.Trash"])
+                == [
+                    "/Users/test", "/Users/test/Desktop", "/Users/test/Documents",
+                    "/Users/test/Downloads"
+                ],
+            "a root walking into a prompted folder asks about it too")
+        expect(
+            !probed(["~"], ignoring: ["~/Library", "~/.Trash", "Downloads"])
+                .contains("/Users/test/Downloads"),
+            "an ignored prompted folder is never opened, so never asked about")
+        expect(
+            probed(["~"]).contains("/Users/test/Library/Mobile Documents/com~apple~CloudDocs"),
+            "iCloud Drive is a prompted folder inside Library")
+        expect(
+            probed(["~/Documents"]) == ["/Users/test/Documents"],
+            "a root that is itself prompted is listed once")
     }
 
     static func resultModel() {

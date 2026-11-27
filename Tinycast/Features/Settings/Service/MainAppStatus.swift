@@ -10,6 +10,13 @@ struct MainAppStatus: Codable, Equatable, Sendable {
         var diagnostics: HyperKeyDiagnostics?
     }
 
+    struct FileAccess: Codable, Equatable, Sendable {
+        /// The scopes whose crawl reaches a folder only Full Disk Access opens.
+        var fullDiskRoots: [String] = []
+        /// Folders macOS has refused one at a time.
+        var blockedFolders: [String] = []
+    }
+
     struct CloudSync: Codable, Equatable, Sendable {
         var status: CloudSyncStatus = .off
         var stopReason: CloudSyncStopReason?
@@ -59,6 +66,7 @@ struct MainAppStatus: Codable, Equatable, Sendable {
     var modifierTapsNeedAccessibility = false
     var snippetsNeedAccessibility = false
     var fileIndex: FileIndexer.Status = .off
+    var fileAccess = FileAccess()
     var cloudSync = CloudSync()
     var dictationModels = DictationModels()
     var mcpStatuses: [UUID: MCPServerStatus] = [:]

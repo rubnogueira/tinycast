@@ -10,7 +10,10 @@ struct FileSearchSettingsView: View {
             FeatureSwitchSection(
                 anchor: .fileSearchFileSearch,
                 enableTitle: "Enable File Search",
-                enableSubtitle: "Indexes your disk for instant results. Needs Full Disk Access.",
+                enableSubtitle: """
+                    Indexes your search scopes for instant results. Full Disk Access is needed \
+                    only for protected folders.
+                    """,
                 isEnabled: $settings.fileSearchEnabled,
                 showsInLauncher: $settings.fileSearchShowInLauncher,
                 showsIcon: true,
@@ -32,58 +35,166 @@ struct FileSearchSettingsView: View {
 }
 
 private struct FileSearchAccessSection: View {
+    private enum Standing {
+        case granted, required, notNeeded
+
+        var symbol: String {
+            switch self {
+            case .granted: "checkmark.circle.fill"
+            case .required: "exclamationmark.triangle.fill"
+            case .notNeeded: "checkmark.circle"
+            }
+        }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .granted: "Granted"
+            case .required: "Required"
+            case .notNeeded: "Not needed"
+            }
+        }
+
+        var color: AnyShapeStyle {
+            switch self {
+            case .granted: AnyShapeStyle(Color.green)
+            case .required: AnyShapeStyle(Color.orange)
+            case .notNeeded: AnyShapeStyle(.secondary)
+            }
+        }
+    }
+
     @Environment(MainAppLink.self) private var mainApp
     @State private var granted = Permissions.hasFullDiskAccess()
     /// Nothing announces a grant made in System Settings, so the pane asks while it is open.
     private let refreshTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let home = FileManager.default.homeDirectoryForCurrentUser
+
+    /// The index lives in the main app, which knows which scopes need what.
+    private var access: MainAppStatus.FileAccess { mainApp.status.fileAccess }
+
+    private var standing: Standing {
+        if granted { return .granted }
+        return access.fullDiskRoots.isEmpty ? .notNeeded : .required
+    }
+
+    private var blocked: [String] { granted ? [] : access.blockedFolders }
 
     var body: some View {
         Section {
-            LabeledContent {
-                HStack(spacing: Theme.Spacing.lg) {
-                    HStack(spacing: Theme.Spacing.xs) {
-                        Image(systemName: granted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .accessibilityHidden(true)
-                        Text(granted ? "Granted" : "Required")
-                    }
-                    .foregroundStyle(granted ? Color.green : Color.orange)
-                    Button(granted ? "Open…" : "Open Privacy Settings…") {
-                        Permissions.openFullDiskAccessSettings()
-                    }
-                    .help("Opens Privacy & Security › Full Disk Access.")
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                    SettingsRowTitle(.fileSearchFullDiskAccess, "Full Disk Access")
-                    Text(granted ? "Tinycast can index every folder." : "File Search can’t index without it.")
-                        .foregroundStyle(.secondary)
-                }
-            }
+            fullDiskRow
+            if !blocked.isEmpty { blockedRow }
         } header: {
             SettingsSectionHeader(.fileSearchFullDiskAccess)
         } footer: {
-            if !granted {
-                Text(
-                    """
-                    File Search reads your disk directly to build a private index on this Mac. \
-                    In System Settings › Privacy & Security › Full Disk Access, turn on \
-                    Tinycast. If it isn’t listed, click + and choose Tinycast from \
-                    Applications. If access still shows as required, quit and reopen Tinycast.
-                    """
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
+            if standing != .granted || !blocked.isEmpty { footer }
         }
         .onAppear(perform: refresh)
         .onReceive(refreshTimer) { _ in refresh() }
     }
 
+    private var fullDiskRow: some View {
+        LabeledContent {
+            HStack(spacing: Theme.Spacing.lg) {
+                HStack(spacing: Theme.Spacing.xs) {
+                    Image(systemName: standing.symbol)
+                        .accessibilityHidden(true)
+                    Text(standing.title)
+                }
+                .foregroundStyle(standing.color)
+                if standing != .notNeeded {
+                    Button(granted ? "Open…" : "Open Privacy Settings…") {
+                        Permissions.openFullDiskAccessSettings()
+                    }
+                    .help("Opens Privacy & Security › Full Disk Access.")
+                }
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                SettingsRowTitle(.fileSearchFullDiskAccess, "Full Disk Access")
+                Text(detail)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var blockedRow: some View {
+        LabeledContent {
+            HStack(spacing: Theme.Spacing.lg) {
+                HStack(spacing: Theme.Spacing.xs) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .accessibilityHidden(true)
+                    Text("Blocked")
+                }
+                .foregroundStyle(Color.orange)
+                Button("Open Privacy Settings…") { Permissions.openFilesAndFoldersSettings() }
+                    .help("Opens Privacy & Security › Files & Folders.")
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                Text("Folder Access")
+                Text("macOS is blocking Tinycast from \(list(blocked)).")
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var detail: LocalizedStringKey {
+        switch standing {
+        case .granted: "Tinycast can index every folder."
+        case .required: "File Search can’t index \(list(access.fullDiskRoots)) without it."
+        case .notNeeded: "Your search scopes don’t include protected folders."
+        }
+    }
+
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            switch standing {
+            case .granted:
+                EmptyView()
+            case .required:
+                Text(
+                    """
+                    File Search reads your disk directly to build a private index on this Mac. \
+                    In System Settings › Privacy & Security › Full Disk Access, turn on Tinycast. \
+                    If it isn’t listed, click + and choose Tinycast from Applications. If access \
+                    still shows as required, quit and reopen Tinycast. Narrower search scopes, \
+                    such as Developer or Documents, don’t need it.
+                    """)
+            case .notNeeded:
+                Text(
+                    """
+                    None of your search scopes holds a folder that only Full Disk Access can read. \
+                    For Desktop, Documents, Downloads and iCloud Drive, macOS asks separately the \
+                    first time Tinycast reads them.
+                    """)
+            }
+            if !blocked.isEmpty {
+                Text(
+                    """
+                    Turn on Tinycast under Privacy & Security › Files & Folders and the index \
+                    updates on its own. Full Disk Access would also cover them.
+                    """)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    }
+
+    private func list(_ paths: [String]) -> String {
+        paths.map { path in
+            path == "/"
+                ? String(localized: "your whole disk")
+                : FileSearchScope.abbreviate(path, homeDirectory: home)
+        }
+        .formatted(.list(type: .and))
+    }
+
     private func refresh() {
         let now = Permissions.hasFullDiskAccess()
-        guard now != granted else { return }
-        granted = now
-        mainApp.send(.refreshFileAccess)
+        let changed = now != granted
+        if changed { granted = now }
+        // A refused folder opens through Files & Folders, which nothing announces either.
+        if changed || !blocked.isEmpty { mainApp.send(.refreshFileAccess) }
     }
 }
 

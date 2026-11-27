@@ -399,12 +399,13 @@ final class AIChatCoordinator {
 
     /// The same narrowing as `tools(for:scopedTo:)`, for a client that starts its own servers.
     private func toolServers(for chat: AIChatState, scopedTo slug: String?) -> AIToolServerSession? {
-        guard capabilities(for: chat).tools, chat.toolScope.isEnabled else { return nil }
-        let excluded = chat.toolScope.excluded
+        guard capabilities(for: chat).tools else { return nil }
+        let scope = chat.toolScope
         let chatID = chat.session.id
         let mcp = core.mcpCoordinator
+        // Handed over even with MCP off, since its round cap also bounds the web tools.
         return AIToolServerSession(rounds: core.aiSettings.toolRounds.limit) {
-            await mcp.toolServers(scopedTo: slug).filter { !excluded.contains($0.handle) }
+            await mcp.toolServers(scopedTo: slug).filter { scope.allows($0.handle) }
         } consent: { call in
             await mcp.permit(call, in: chatID)
         }

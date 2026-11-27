@@ -77,6 +77,18 @@
 	<string>Tinycast lets extensions you run read and edit your reminders.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Tinycast uses Bluetooth access only when you run the Toggle Bluetooth action.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Tinycast indexes file names in your Desktop folder when it is one of your File Search scopes.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Tinycast indexes file names in your Documents folder when it is one of your File Search scopes.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Tinycast indexes file names in your Downloads folder when it is one of your File Search scopes.</string>
+	<key>NSFileProviderDomainUsageDescription</key>
+	<string>Tinycast indexes file names in a cloud storage folder when it is one of your File Search scopes.</string>
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>Tinycast indexes file names on a network volume when it is one of your File Search scopes.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Tinycast indexes file names on a removable volume when it is one of your File Search scopes.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Tinycast</string>
 	<key>TinycastUpdatePublicKey</key>

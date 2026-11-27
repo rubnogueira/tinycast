@@ -638,8 +638,18 @@ prefs, caches, TCC grants and login item, so this cannot disturb an installed co
 ### File Search
 
 - With File Search **off**: Search Files is absent, its shortcut no-ops, and no index folder exists
-- Without Full Disk Access the pane shows **Required** with the hint, the palette says so, and ↵ and the
-  button both open Privacy & Security › Full Disk Access; granting it starts a build with no relaunch
+- With the default `~` scope and no Full Disk Access the pane shows **Required**, naming `~`,
+  the palette says so, and ↵ and the button both open Privacy & Security › Full Disk Access; granting it
+  starts a build with no relaunch
+- Replacing the scope with `~/Developer` (Full Disk Access still off) shows **Not needed**, builds with
+  no prompt and searches; adding `~` shows **Required** again and empties the results until it is granted
+- With `~` as the scope, adding `~/Library` as an ignore pattern (the Trash is a shipped default) shows
+  **Not needed** and builds without Full Disk Access
+- With only `~/Documents` as the scope and no Full Disk Access, enabling shows macOS's Documents prompt
+  with Tinycast's usage string; Allow indexes the folder. After a reset (`tccutil reset
+  SystemPolicyDocumentsFolder <bundle id>`), Don't Allow leaves **Folder Access › Blocked** naming
+  `~/Documents`, and turning Tinycast on under Files & Folders rebuilds the index within seconds with no
+  relaunch
 - The first build shows a rising item count in Settings and the palette, then a final count and date;
   Activity Monitor shows the helper's memory, and Tinycast's own footprint is back at its baseline after
 - Enabling in Settings exposes Search Files immediately; it persists across relaunch and backup import

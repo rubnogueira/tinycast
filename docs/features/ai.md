@@ -192,7 +192,9 @@ picker. ⌘J hands a Quick AI conversation to the window.
   exactly as it did and `AIChatState` reduces one more pair of events. Codex and the Claude command
   run that loop themselves, so `AIModelSelection.runsItsOwnTools` hands them an
   `AIToolServerSession` instead of a wrapper: same servers, same trust, same rows, and the same
-  round cap counted in whatever unit the CLI counts in. Only chat wraps or arms: `quickActionProvider()`
+  round cap counted in whatever unit the CLI counts in. The session is handed over even with MCP off
+  and an empty server list, because its cap also bounds the Claude command's web tools. Only chat
+  wraps or arms: `quickActionProvider()`
   rewrites the reader's own selected text and has nothing to call. A turn's tool messages stay inside
   the loop: what the transcript keeps is a `ChatToolUse` record, pinned at a text offset like a
   search, so `boundedContext` can never separate a stored call from its result.
@@ -217,20 +219,31 @@ picker. ⌘J hands a Quick AI conversation to the window.
   under its line, and an OpenAI-compatible one reads through `metadata.raw` too, or says the provider
   stopped the response when there is no sentence to show.
 - **`Model/` stays Foundation-only.** `AIProviderTests` compiles the shipped provider models and pins
-  endpoints, request bodies, stream parsing, persistence repair, Codex protocol framing and both
-  CLI routes' MCP launch encodings. Request
+  endpoints, request bodies, stream parsing, persistence repair, Codex protocol framing, both
+  CLI routes' MCP launch encodings and Claude's web-tool flags and frames. Request
   bodies are `AIRequestBody`'s, in `Model/`, precisely so a wrong shape fails a harness rather than a
   conversation.
-- **Grok and Cursor are text transports, not agents, and so is Claude with no server to
-  run.** Claude runs one turn with no tools, browser integration, slash commands or persisted
+- **Grok and Cursor are text transports, not agents, and so is Claude with nothing to
+  call.** Claude runs one turn with no tools, browser integration, slash commands or persisted
   session, but never `--bare`, which reads neither
   OAuth nor the keychain and so refuses the very sign-in this route reuses. Given servers by
   [MCP](mcp.md) it becomes an agent for that turn and only over those: `--tools ""` still withholds
-  every built-in, the turn keeps its stream-json stdin open so consent has a pipe to answer on,
+  every built-in bar the web tools below, the turn keeps its stream-json stdin open so consent has a pipe to answer on,
   `--disallowedTools "*"` comes off because it removes the MCP tools too, `--max-turns` carries
   the round cap instead of the constant 1, or is left out on Unlimited, and
   `--permission-mode default` with an ask rule per server keeps the reader's own allow rules and
   default mode from answering before Tinycast does.
+- **Claude's web tools are the only built-ins any route is ever handed, and the Web search switch
+  is their whole consent.** A turn the reader asked to search (`AIRequest.webSearch`, Claude only —
+  Grok and the rest never read it) names `WebSearch,WebFetch` in `--tools` instead of nothing
+  (`ClaudeWebTools`), pre-allows exactly those with `--allowedTools`, and swaps the safety prompt
+  for one that permits them and nothing else. A headless turn has nobody to ask, so a web-only turn
+  adds `--permission-mode dontAsk`, which refuses anything unlisted where a prompt would wait for
+  good; with servers armed the MCP flags keep the permission mode. The CLI counts a web call as a
+  turn, so `--max-turns` carries the same round cap, and `--disallowedTools "*"` stays off because
+  it would remove them. `WebFetch` refuses localhost but not another private address, the CLI asks
+  Anthropic whether a domain is safe before fetching it, and a Team or Enterprise policy can
+  withhold the tool — each is the CLI's, not Tinycast's. Switch off, none of this is passed.
   Grok runs with `--deny *`,
   `dontAsk` permissions and a workspace sandbox, and never `--always-approve`, so a user's always-approve
   config cannot arm tools for this route. OpenCode 2 runs `--standalone`, so its private server
@@ -251,8 +264,8 @@ picker. ⌘J hands a Quick AI conversation to the window.
   the `tinycast` agent's deny-all rule for OpenCode and withheld MCP approval for Cursor. Cursor's is the only one resting
   on an approval prompt rather than an explicit deny, which is why its Providers row says so and the
   others do not. Grok and Cursor are never handed a server. OpenCode's exact allow rules name only
-  the turn's randomly named, authenticated bridge, never the user's servers. None of these routes
-  offer web search, and only Claude and
+  the turn's randomly named, authenticated bridge, never the user's servers. Of these routes only
+  Claude offers web search, and only Claude and
   OpenCode take images: every Claude turn is one `--input-format stream-json` user message, the newest
   question's pictures as base64 `image` blocks beside the framed prompt. OpenCode gets the same
   pictures as private `0600` files in the workspace, one `--file` each, and only for a model whose
@@ -721,6 +734,10 @@ window, and every chat action either surface sends) is the nineteenth feature co
 - On Codex and on the Claude command, with an MCP server enabled, a question answered with a tool
   shows the same rows the API routes show and the reply continues after them; with MCP off, both
   routes stream exactly as they did before.
+- With Web search on, ask the Claude command, and an Anthropic connection, for something recent and
+  then to read a link: a "Searching web" row becomes "Searched web · query", the page shows as
+  "Called Web · host/path", and both answer with sources. With the switch off, the same question gets
+  no row and no lookup, and a gateway-backed Anthropic connection shows no Search pill at all.
 - With `Opens to: Recent Conversation` and a five-minute window, Escape out and summon again inside
   five minutes resumes the transcript; past it, the composer is empty. Quitting and relaunching still
   reopens the last conversation. `A New Conversation` is always empty. The AI Chat window does the
@@ -785,7 +802,8 @@ window, and every chat action either surface sends) is the nineteenth feature co
   instructions, `ChatPresetStore`'s validation and unreadable-file refusal, endpoints,
   request bodies, stream decoding including leading
   think tags across content and SSE splits, persistence repair,
-  Codex framing, on-device routing, the two MCP launch encodings and the two consent channels, the
+  Codex framing, on-device routing, the two MCP launch encodings and the two consent channels,
+  Claude's web-tool flags and frames, Anthropic's server-tool request and stream, the
   shown-model and switched-off-route rules, and a tool's override from settings to launch),
   `OpenCodeMCPTests` (bridge authentication, scoped catalog, exact permissions, calls and limits),
   `SyntaxHighlightTests` (every grammar's tokens, language aliases, the size limit, and that every
@@ -881,7 +899,8 @@ Grok, whose CLI requires a path), consumes newline-delimited JSON, and never put
 process command line. Claude uses stream JSON, `--effort` and no session persistence, and takes every
 turn as one framed `stream-json` user line. With servers armed it keeps stdin open for the consent
 channel and closes it on the CLI's own result frame; writes are chained rather than concurrent,
-because two racing the same pipe would interleave a line.
+because two racing the same pipe would interleave a line. A web-only turn needs neither, so it is
+written and closed like any other.
 Grok uses `streaming-messages-json` and `--effort`, with `--deny *` so tools cannot run even when the
 user's Grok config is always-approve; it captures the session id, then calls `grok sessions delete`.
 An error result omits `result` and carries the cause in `errors`; that text is the failure, not
@@ -957,18 +976,18 @@ A text-ish file is deliberately absent from this table: it is inlined as text be
 sees the turn, so every route (the on-device model and all installed CLI transports included) takes one with no
 transport code at all.
 
-| Route               | Web search                                                                               | Images                                                                                          | PDFs                                                                                    | MCP tools                                                                                                                                                  |
-| ------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Apple Intelligence  | never: it reaches nothing                                                                | never: the model is text-only                                                                   | never                                                                                   | never                                                                                                                                                      |
-| Codex               | thread-scoped `web_search` config                                                        | `image` input part                                                                              | never: the app-server takes no document part                                            | Tinycast's servers, added as launch overrides; the reader's own are disabled by name                                                                       |
-| Claude command      | never                                                                                    | base64 `image` block in its stream-json user message                                            | never                                                                                   | Tinycast's servers, through `--strict-mcp-config` and a private config file: an empty one when there are none, and neither flag under a managed MCP policy |
-| Grok command        | never                                                                                    | never                                                                                           | never                                                                                   | the global config still loads; `--deny *` refuses the call                                                                                                 |
-| OpenCode command    | never                                                                                    | a private file per picture, through `--file`, only for models whose catalog lists `image` input | never                                                                                   | selected Tinycast tools through a per-turn authenticated loopback bridge; all other tools denied                                                           |
-| Cursor command      | never                                                                                    | never                                                                                           | never                                                                                   | the global config still loads; ask mode and withheld approval refuse the call                                                                              |
-| OpenRouter          | `plugins: [{id: "web"}]` (OpenRouter's own layer, any model)                             | `image_url` part, only for models whose catalog lists the `image` modality                      | never yet: its catalog publishes a `file` modality Tinycast does not read               | `tools` + `role: "tool"` turns                                                                                                                             |
-| OpenAI              | the hosted `web_search` tool on the Responses route, never on a gateway                  | `image_url` part, assumed supported                                                             | `file` part with `filename` and a `file_data` data URL                                  | `tools` + `role: "tool"` turns                                                                                                                             |
-| Gemini / compatible | not offered                                                                              | `image_url` part, assumed supported                                                             | never: a gateway that has not implemented the part bills the upload before rejecting it | `tools` + `role: "tool"` turns; a call's `extra_content.google.thought_signature` goes back unchanged, or Gemini 3 rejects the next turn                   |
-| Anthropic           | the `web_search_20250305` server tool, five searches a turn, at `api.anthropic.com` only | base64 `image` block                                                                            | base64 `document` block, ahead of the text block                                        | `tools` + `tool_use` / `tool_result` blocks                                                                                                                |
+| Route               | Web search                                                                                                   | Images                                                                                          | PDFs                                                                                    | MCP tools                                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Apple Intelligence  | never: it reaches nothing                                                                                    | never: the model is text-only                                                                   | never                                                                                   | never                                                                                                                                                      |
+| Codex               | thread-scoped `web_search` config                                                                            | `image` input part                                                                              | never: the app-server takes no document part                                            | Tinycast's servers, added as launch overrides; the reader's own are disabled by name                                                                       |
+| Claude command      | the CLI's own `WebSearch` and `WebFetch`, pre-allowed under `dontAsk`                                        | base64 `image` block in its stream-json user message                                            | never                                                                                   | Tinycast's servers, through `--strict-mcp-config` and a private config file: an empty one when there are none, and neither flag under a managed MCP policy |
+| Grok command        | never                                                                                                        | never                                                                                           | never                                                                                   | the global config still loads; `--deny *` refuses the call                                                                                                 |
+| OpenCode command    | never                                                                                                        | a private file per picture, through `--file`, only for models whose catalog lists `image` input | never                                                                                   | selected Tinycast tools through a per-turn authenticated loopback bridge; all other tools denied                                                           |
+| Cursor command      | never                                                                                                        | never                                                                                           | never                                                                                   | the global config still loads; ask mode and withheld approval refuse the call                                                                              |
+| OpenRouter          | `plugins: [{id: "web"}]` (OpenRouter's own layer, any model)                                                 | `image_url` part, only for models whose catalog lists the `image` modality                      | never yet: its catalog publishes a `file` modality Tinycast does not read               | `tools` + `role: "tool"` turns                                                                                                                             |
+| OpenAI              | the hosted `web_search` tool on the Responses route, never on a gateway                                      | `image_url` part, assumed supported                                                             | `file` part with `filename` and a `file_data` data URL                                  | `tools` + `role: "tool"` turns                                                                                                                             |
+| Gemini / compatible | not offered                                                                                                  | `image_url` part, assumed supported                                                             | never: a gateway that has not implemented the part bills the upload before rejecting it | `tools` + `role: "tool"` turns; a call's `extra_content.google.thought_signature` goes back unchanged, or Gemini 3 rejects the next turn                   |
+| Anthropic           | the `web_search_20250305` and `web_fetch_20250910` server tools, five uses each, at `api.anthropic.com` only | base64 `image` block                                                                            | base64 `document` block, ahead of the text block                                        | `tools` + `tool_use` / `tool_result` blocks                                                                                                                |
 
 A search is part of the reply, not a status: `item/started` for a `webSearch` item appends a
 `ChatSearch` to the streaming message pinned at the text length so far, `item/completed` (or the
@@ -981,9 +1000,22 @@ to the stream, so it shows none. OpenAI's `web_search_call` items and Anthropic'
 beside the text (`url_citation` annotations and `citations_delta`), so `AICitationLinker` inlines
 each as a host-labelled Markdown link after the span it cites, unless the reply already links that
 page, which is what `ChatReferences` reads as a source. Gemini's OpenAI-compatible endpoint has no
-search parameter, so it offers none. An Anthropic `pause_turn` ends the reply where it paused.
-The web-search instructions ask for citations linked by the publication's name; the model
+search parameter, so it offers none. The web-search instructions ask for citations linked by the publication's name; the model
 otherwise labels them "Read more".
+
+Claude's two routes draw the same rows. On the command, a `WebSearch` `tool_use` opens the search and
+a `WebFetch` is an ordinary tool row, "Called Web · host/path", named without the query string
+because a whole address can be a screenful of tracking. A search row carries no ID and the CLI
+returns results in whatever order they finish, so the frame decoder lists each search's call ID and
+the runner (`openSearches`) closes a search only when its own `tool_result` arrives. On the API, both
+server tools run inside Anthropic's turn and no loop of Tinycast ever sees one, so nothing is answered:
+the decoder reassembles a `server_tool_use` block from its `input_json_delta` fragments, kept apart
+from a client call's by block index, a `web_search_tool_result` closes the search, and a
+`web_fetch_tool_result` finishes the fetch row, failed when it holds an error object. Their versions
+are the oldest (`web_search_20250305`, `web_fetch_20250910`); the later ones run code to filter a
+result, which nothing here reads. A turn Anthropic ends with `pause_turn` fails with a message
+instead of finishing, since resuming one means replaying raw server blocks Tinycast does not keep,
+and an organization whose Console has web search off gets Anthropic's own 400 under the reply.
 
 `AIModelCapabilities` says what the footer may offer for the selected model. OpenRouter is the only
 catalog that reports `architecture.input_modalities`, so it is the only provider gated on it:
@@ -992,7 +1024,8 @@ model added by hand is assumed text-only. A vendor API is assumed to take images
 doesn't simply returns the provider's error.
 
 Web search is a Settings → AI toggle, `aiWebSearch`, off by default: a prompt reaches a search engine
-only once the user has opted in.
+only once the user has opted in. On Claude the same switch also lets the model open a link, which the
+command requests from this Mac and the API requests from Anthropic's servers.
 It's still excluded from backups: which Mac may send prompts to a search engine is that Mac's call.
 Nothing _guesses_ at a capability: images ride on what the model's own catalog said, and a vendor
 API that does not take one simply returns its error. What is gated is only what a route provably
@@ -1151,7 +1184,7 @@ preamble is the part that is billed on every turn for every user and has no othe
 disables the editor rather than hiding it, so what is being withheld stays readable. One thing it
 deliberately cannot reach: every installed CLI route prepends its own instruction never to run
 commands or touch files, and never to invoke a tool beyond the MCP tools an armed Codex or Claude
-turn supplies. That is a sandbox boundary on a local CLI, not Tinycast describing itself, and a user
+turn supplies and the web tools of a Claude turn the reader asked to search. That is a sandbox boundary on a local CLI, not Tinycast describing itself, and a user
 switch must not be able to lift it. An armed turn's instruction lets those MCP tools do anything they
 offer, commands and files included: the CLI's own tools are already off by flag and every call
 passes consent, so forbidding it there would only make the model refuse a server the user chose.

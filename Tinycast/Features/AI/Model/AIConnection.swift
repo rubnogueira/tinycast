@@ -94,9 +94,12 @@ struct AIConnection: Codable, Equatable, Identifiable, Sendable {
         self.outputLimits = outputLimits
     }
 
+    /// Trimmed first, as `AIEndpointPolicy.validate` does, so a padded address reads as it sends.
+    private var endpoint: URL? { URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) }
+
     /// A preset pointed away from its own API is a gateway, and only a gateway takes a thinking field.
     var takesThinkingField: Bool {
-        provider.apiShape(for: URL(string: baseURL)) == .openAICompatible
+        provider.apiShape(for: endpoint) == .openAICompatible
             && baseURL.trimmingCharacters(in: .whitespacesAndNewlines) != provider.defaultBaseURL
     }
 
@@ -159,7 +162,7 @@ struct AIConnection: Codable, Equatable, Identifiable, Sendable {
             images: provider != .openRouter || visionModels.contains(model),
             // Only the two shapes whose bodies Tinycast writes; a gateway bills the upload first.
             documents: provider == .openAI || provider == .anthropic,
-            webSearch: provider.offersWebSearch(at: URL(string: baseURL)), tools: true)
+            webSearch: provider.offersWebSearch(at: endpoint), tools: true)
     }
 }
 
@@ -178,9 +181,9 @@ struct AIModelCapabilities: Equatable, Sendable {
         images: true, documents: false, webSearch: true, tools: false)
     static let codex = AIModelCapabilities(
         images: true, documents: false, webSearch: true, tools: true)
-    /// Pictures ride in its stream-json input; its own client runs Tinycast's MCP servers.
+    /// Pictures ride in its stream-json input; its own client runs the MCP servers and web tools.
     static let claudeCommand = AIModelCapabilities(
-        images: true, documents: false, webSearch: false, tools: true)
+        images: true, documents: false, webSearch: true, tools: true)
     /// The on-device model is text-only and reaches nothing, so it offers none of the three.
     static let appleIntelligence = AIModelCapabilities.none
 }

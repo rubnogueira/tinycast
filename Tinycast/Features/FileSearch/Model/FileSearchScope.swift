@@ -43,4 +43,8 @@ enum FileSearchScope {
     static func contains(_ root: String, _ path: String) -> Bool {
         path == root || path.hasPrefix(root == "/" ? "/" : root + "/")
     }
+
+    static func join(_ parent: String, _ name: String) -> String {
+        parent == "/" ? "/" + name : parent + "/" + name
+    }
 }

@@ -11,8 +11,12 @@ design follows [fsearch](https://github.com/noahdunnagan/fsearch).
 - **The crawl runs in `FileIndexHelper`, never in the app.** On macOS 27 malloc keeps freed small blocks
   dirty, so a crawl inside the app would leave its peak behind for good. The helper writes the index and
   exits; the app only maps the file, whose clean pages never count toward its footprint.
-- **Full Disk Access is required, and nothing is indexed without it.** `Permissions.hasFullDiskAccess()`
-  probes a TCC-guarded file, which never prompts. The pane and the palette both say how to grant it.
+- **Full Disk Access is required only when a scope reaches a folder that only it opens, and then
+  nothing is indexed without it.** `FileSearchAccess` decides from the roots and ignore patterns alone;
+  `Permissions.hasFullDiskAccess()` probes a TCC-guarded file, which never prompts. The pane and the
+  palette both say how to grant it, and that narrower scopes avoid it.
+- **Every other guarded folder is asked about one at a time, never demanded up front.** See
+  [Access](#access): nothing requests it, the pane only reports a refusal.
 - **Scopes are the crawl roots.** Only what lies under a scope appears in indexed results. A scope inside
   another stays listed but folds into it at crawl time, and a cleared list indexes nothing. The default
   is home (`~`): the rest of the disk is the system's, and apps are the launcher's.
@@ -52,7 +56,7 @@ design follows [fsearch](https://github.com/noahdunnagan/fsearch).
 
 ## Building the index
 
-`FileIndexer` (main actor) owns the lifecycle. With the feature on and access granted it maps
+`FileIndexer` (main actor) owns the lifecycle. With the feature on and the access its scopes need granted it maps
 `FileIndex/index.bin` if its fingerprint matches the current `FileSearchPolicy`, and otherwise launches
 `Contents/Helpers/FileIndexHelper` with the output path and the policy's `Request` as JSON. The helper
 prints its running entry count every 100 ms, which the Settings pane and the palette show.
@@ -209,6 +213,35 @@ path and `**/.claude/worktrees` costs a crawl no more than `~/Movies`. Other wil
 keep the full-path match.
 **Add Folder…** stores the chosen folder as a `~`-relative path pattern.
 
+## Access
+
+What a scope costs in permissions depends on what a crawl from it would open:
+
+| A scope that reaches | Needs | When macOS says no |
+| --- | --- | --- |
+| a folder only Full Disk Access opens: `/`, `~`, `~/Library`, `~/Library/Mail`, `~/.Trash` | Full Disk Access | `FileIndexer.Status.needsAccess`: nothing is indexed, and ↵ opens Privacy & Security |
+| Desktop, Documents, Downloads, iCloud Drive, a cloud provider or another volume | a per-folder grant | the crawl skips it and the pane lists it under **Folder Access** |
+| anything else | nothing | — |
+
+`FileSearchAccess.rootsNeedingFullDiskAccess` walks each root down to every folder in its list. A root
+inside a protected folder counts, and so does one that merely contains it. A folder under the root that
+an ignore pattern skips does not, since the crawl never opens it: ignoring `~/Library` and `~/.Trash`
+lets a `~` scope run without Full Disk Access. The root itself is never matched by an ignore pattern.
+`FileIndexer.fullDiskRoots` carries the result, so the pane names the scope that forces the grant. The
+list is hand-maintained, and a protected folder missing from it is skipped silently by a crawl that has
+no Full Disk Access.
+
+The per-folder prompts are macOS's own and come from the helper's first read, which runs under
+Tinycast's grants exactly as it does for Full Disk Access. `Info.plist` carries a usage string for each
+so the dialog says why; none needs a hardened-runtime entitlement, unlike Calendars or Camera. A refusal is `EPERM` from opening the
+folder. After every index swap, and while the pane is open and something is blocked, `FileIndexer` opens
+each root and each prompted folder a root walks into, on a queue of its own because the open blocks
+behind an unanswered prompt. `blockedFolders` is what came back refused. A folder that stops being
+refused rebuilds the index, so granting it in Files & Folders needs no relaunch. With Full Disk Access
+granted nothing is probed, since nothing can be refused.
+
+Switching to scopes that need Full Disk Access without it drops the index, as revoking it does.
+
 ## Palette and actions
 
 `FileSearchScreen.rows` is the exact flat selection order rendered by `FileSearchList`. Results sit in a
@@ -282,8 +315,10 @@ is no "all" to trash. The three ⌘C chords differ only by their second modifier
 
 The first in-flight query says nothing (the rows it is about to replace would only flash a message); an
 empty completed query says what the active filter admits ("No files found", "No images found"), and a
-blank screen with no recents says "Type to search files and folders". Without Full Disk Access the screen
-says so and ↵ opens the Privacy & Security pane; during the first build it shows the running item count.
+blank screen with no recents says "Type to search files and folders". When the scopes need Full Disk Access
+and it is missing, the screen says so, points at narrowing the scopes, and ↵ opens the Privacy & Security
+pane; during the first build it shows the running item count. A folder that macOS refuses one at a time is
+reported by the pane alone.
 
 ### Dragging out
 
@@ -328,9 +363,10 @@ fitted cache, purged when the palette hides.
 ## Invocation
 
 Settings ▸ File Search owns the `fileSearchEnabled` switch, which is off when its preference is absent,
-the **Show in launcher** switch beneath it, along with the Full Disk Access status, the index status and **Rebuild Index**, the scope list
-with **Include hidden files** (`fileSearchIncludesHiddenFiles`), the ignore patterns and the Search Files
-command row. The lists are ordinary settings carried by Tinycast
+the **Show in launcher** switch beneath it, along with the Full Disk Access status (Required, Granted or
+Not needed, plus **Folder Access** when macOS has refused a folder), the index status and
+**Rebuild Index**, the scope list with **Include hidden files** (`fileSearchIncludesHiddenFiles`), the
+ignore patterns and the Search Files command row. The lists are ordinary settings carried by Tinycast
 settings backups; importing them grants no permission.
 
 `AppCore` observes the switch and asks `FileSearchCoordinator` to project `CommandID.searchFiles` into

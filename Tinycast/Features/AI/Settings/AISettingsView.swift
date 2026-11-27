@@ -133,7 +133,7 @@ struct AISettingsView: View {
         return Section {
             Toggle(isOn: $settings.webSearchEnabled) {
                 SettingsRowTitle(.aiChat, "Web search")
-                Text("Codex and OpenRouter only. Prompts go to a search engine.")
+                Text("Codex, Claude and OpenRouter only. Prompts go to a search engine.")
             }
             Toggle(isOn: $settings.choicesEnabled) {
                 SettingsRowTitle(.aiChat, "Suggested replies")

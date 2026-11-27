@@ -10,6 +10,9 @@ struct InstalledAIStreamFrame: Equatable, Sendable {
     var unsupportedRequestID: String?
     /// The round cap ended the turn. Only the runner knows the number to say it with.
     var stoppedAtRoundCap = false
+    /// A search row has no ID, so the runner pairs these with the results that close them.
+    var searchCallIDs: [String] = []
+    var answeredCallIDs: [String] = []
 }
 
 enum InstalledAIStreamDecoder {
@@ -21,7 +24,7 @@ enum InstalledAIStreamDecoder {
         else { return InstalledAIStreamFrame() }
         switch kind {
         case .openCode: return openCode(object, type: type)
-        case .claude: return claude(object, type: type, servers: servers)
+        case .claude: return claude(object, type: type, servers: servers, offersWeb: true)
         case .cursor: return cursor(object, type: type)
         case .grok: return grok(object, type: type)
         case .codex: return InstalledAIStreamFrame()
@@ -73,7 +76,7 @@ enum InstalledAIStreamDecoder {
     }
 
     private static func claude(
-        _ object: [String: Any], type: String, servers: [AIToolServer]
+        _ object: [String: Any], type: String, servers: [AIToolServer], offersWeb: Bool
     ) -> InstalledAIStreamFrame {
         var frame = InstalledAIStreamFrame()
         if !servers.isEmpty, type == "control_request" {
@@ -81,9 +84,8 @@ enum InstalledAIStreamDecoder {
             frame.unsupportedRequestID = ClaudeControlProtocol.unsupportedRequestID(object)
             return frame
         }
-        if !servers.isEmpty, type == "assistant" || type == "user" {
-            frame.events = toolEvents(in: object, servers: servers)
-            return frame
+        if type == "assistant" || type == "user" {
+            return toolFrame(in: object, servers: servers, offersWeb: offersWeb)
         }
         // Summaries arrive as several thinking blocks; a break keeps them from running together.
         if type == "stream_event", let event = object["event"] as? [String: Any],
@@ -128,29 +130,44 @@ enum InstalledAIStreamDecoder {
         return frame
     }
 
-    /// `tool_use` and `tool_result` blocks, as the two events a transcript row is built from.
-    private static func toolEvents(
-        in object: [String: Any], servers: [AIToolServer]
-    ) -> [AIStreamEvent] {
+    /// `tool_use` and `tool_result` blocks, as the events a transcript row is built from.
+    private static func toolFrame(
+        in object: [String: Any], servers: [AIToolServer], offersWeb: Bool
+    ) -> InstalledAIStreamFrame {
+        var frame = InstalledAIStreamFrame()
         guard let message = object["message"] as? [String: Any],
             let content = message["content"] as? [[String: Any]]
-        else { return [] }
-        return content.compactMap { block in
+        else { return frame }
+        for block in content {
             switch block["type"] as? String {
             case "tool_use":
-                guard let id = block["id"] as? String, let name = block["name"] as? String,
-                    let call = ClaudeMCPLaunch.route(name)
-                else { return nil }
-                return .toolCall(
-                    id: id, origin: AIToolServerRow.title(of: call.handle, in: servers),
-                    title: AIToolServerRow.label(call.tool))
+                guard let id = block["id"] as? String, let name = block["name"] as? String
+                else { continue }
+                let input = block["input"] as? [String: Any]
+                if !servers.isEmpty, let call = ClaudeMCPLaunch.route(name) {
+                    frame.events.append(
+                        .toolCall(
+                            id: id, origin: AIToolServerRow.title(of: call.handle, in: servers),
+                            title: AIToolServerRow.label(call.tool)))
+                } else if offersWeb, name == ClaudeWebTools.cliSearch {
+                    frame.events.append(.searching(input?["query"] as? String))
+                    frame.searchCallIDs.append(id)
+                } else if offersWeb, name == ClaudeWebTools.cliFetch {
+                    frame.events.append(
+                        .toolCall(
+                            id: id, origin: ClaudeWebTools.origin,
+                            title: ClaudeWebTools.fetchTitle(input?["url"] as? String)))
+                }
             case "tool_result":
-                guard let id = block["tool_use_id"] as? String else { return nil }
-                return .toolResult(id: id, isError: block["is_error"] as? Bool == true)
+                guard !servers.isEmpty || offersWeb, let id = block["tool_use_id"] as? String
+                else { continue }
+                frame.events.append(.toolResult(id: id, isError: block["is_error"] as? Bool == true))
+                frame.answeredCallIDs.append(id)
             default:
-                return nil
+                continue
             }
         }
+        return frame
     }
 
     /// Cached prompt tokens sit outside `input_tokens`, and only `modelUsage` names the window.
@@ -182,7 +199,7 @@ enum InstalledAIStreamDecoder {
         _ object: [String: Any], type: String
     ) -> InstalledAIStreamFrame {
         // Grok shares the frame shape but never the tools: `--deny *` refuses every call.
-        var frame = claude(object, type: type, servers: [])
+        var frame = claude(object, type: type, servers: [], offersWeb: false)
         if let sessionID = object["session_id"] as? String, !sessionID.isEmpty {
             frame.sessionID = sessionID
         }

@@ -99,8 +99,9 @@ struct FileSearchScreen: PaletteScreen {
                 text: String(localized: "Full Disk Access required"),
                 detail: String(
                     localized: """
-                        File Search indexes your whole disk. Press ↵ to open Privacy & Security, \
-                        then turn on Tinycast under Full Disk Access.
+                        Your search scopes include folders macOS protects. Press ↵ to open \
+                        Privacy & Security and turn on Tinycast, or narrow the scopes in \
+                        Settings ▸ File Search.
                         """),
                 systemImage: "lock.shield")
         } else if !indexer.hasIndex, case .building(let items) = indexer.status {

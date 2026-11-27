@@ -203,8 +203,9 @@ open the tool's **Advanced** tab:
   tool from touching your files, and the row tells you when a value won't be used.
 
 Tinycast uses these tools for chat only. Claude, Grok and OpenCode run with tools, file access and
-shell access turned off. The exception is [MCP servers](/docs/ai/mcp) you add, which Codex and Claude
-can call but the other three can't.
+shell access turned off. The exceptions are [MCP servers](/docs/ai/mcp) you add, which Codex and Claude
+can call but the other three can't, and [web search](#web-search), which Claude can use once you turn
+it on.
 
 Cursor runs in Ask mode in a private Tinycast workspace: it can read but not edit, and MCP tools
 aren't approved automatically. Cursor's command-line tool can't start without your MCP
@@ -241,13 +242,32 @@ has a **Reasoning levels** menu. Check the levels the gateway accepts (**Minimal
 If a provider refuses a request, the reply shows the error with the provider's own message. Your key
 and header values are hidden from it.
 
+## Suggested replies
+
+A reply can end with a few buttons that answer for you. Click one and it's sent as your next
+message. Only the latest reply keeps its buttons.
+
+Turn off **Settings → AI → Suggested replies** to hide them. Tinycast also stops asking the model
+to write them.
+
 ## Web search
 
 **Settings → AI → Web search** is off by default. Your prompts are only sent to a search engine after
 you turn it on.
 
-It works with **Codex** and with **OpenRouter** models. Searches appear inline in the reply with the
-query that was used, and sources are linked by name.
+It works with **Codex**, with the installed **Claude** command, with an **Anthropic Claude** API
+connection, and with **OpenRouter** models. Searches appear inline in the reply with the query that
+was used, and sources are linked by name.
+
+Claude can also open a link you paste or one it finds. The page shows in the reply as a row naming
+its site and path. With the installed command, your Mac requests the page, and the command may check
+the site with Anthropic first. With the API, Anthropic requests it. Claude can't open an address on
+your own Mac such as `localhost`.
+
+An Anthropic connection only searches when it points at Anthropic's own address, so one that goes
+through a gateway shows no search switch. If your organization has turned off web search in the
+Anthropic Console, or its Claude plan withholds the tools, search won't work there, and the reply
+shows the reason it was given.
 
 In the AI Chat window, **+ → Web Search** turns the same setting on and off. While it's on, a
 **Search** button sits next to **+**. Click it to turn web search off.

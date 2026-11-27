@@ -88,6 +88,8 @@ struct AIStreamDecoder: Sendable {
     private var citedURLs: [Int: [String]] = [:]
     private var searchIndex: Int?
     private var searchInput = ""
+    /// Anthropic's own fetches: they stream like a client's call but are never handed to the loop.
+    private var fetchCalls: [Int: PartialToolCall] = [:]
     private(set) var isTerminal = false
 
     init(shape: AIHTTPConfiguration.APIShape, secrets: [String] = []) {
@@ -213,13 +215,21 @@ struct AIStreamDecoder: Sendable {
                     id: event.contentBlock?.id ?? "", name: event.contentBlock?.name ?? "",
                     arguments: "")
                 return []
-            case "server_tool_use" where event.contentBlock?.name == "web_search":
+            case "server_tool_use" where event.contentBlock?.name == ClaudeWebTools.apiSearch:
                 searchIndex = index
                 searchInput = ""
                 return [.searching(nil)]
+            case "server_tool_use" where event.contentBlock?.name == ClaudeWebTools.apiFetch:
+                fetchCalls[index] = PartialToolCall(
+                    id: event.contentBlock?.id ?? "", name: ClaudeWebTools.apiFetch, arguments: "")
+                return []
             case "web_search_tool_result":
                 searchIndex = nil
                 return [.searched(searchQuery)]
+            case "web_fetch_tool_result":
+                guard let id = event.contentBlock?.toolUseID else { return [] }
+                let failed = event.contentBlock?.resultType == "web_fetch_tool_result_error"
+                return [.toolResult(id: id, isError: failed)]
             default:
                 return []
             }
@@ -232,6 +242,8 @@ struct AIStreamDecoder: Sendable {
                 let fragment = event.delta?.partialJSON ?? ""
                 if index == searchIndex {
                     searchInput += fragment
+                } else if fetchCalls[index] != nil {
+                    fetchCalls[index]?.arguments += fragment
                 } else {
                     partialToolCalls[index]?.arguments += fragment
                 }
@@ -245,10 +257,12 @@ struct AIStreamDecoder: Sendable {
             guard let thinking = event.delta?.thinking, !thinking.isEmpty else { return [.thinking] }
             return [.thinking, .reasoning(thinking)]
         case "content_block_stop":
+            var events = fetchCalls.removeValue(forKey: index).map(Self.fetchEvents) ?? []
             let links = (citedURLs.removeValue(forKey: index) ?? []).compactMap {
                 citations.link(to: $0)
             }
-            return links.isEmpty ? [] : [.text(links.joined())]
+            if !links.isEmpty { events.append(.text(links.joined())) }
+            return events
         case "message_start":
             let reported = event.message?.usage
             usage.inputTokens = reported?.inputTokens ?? usage.inputTokens
@@ -258,6 +272,11 @@ struct AIStreamDecoder: Sendable {
             return [.usage(usage)]
         case "message_delta":
             usage.outputTokens = event.usage?.outputTokens ?? usage.outputTokens
+            // Resuming needs the raw blocks sent back unchanged; ending quietly would cut the reply.
+            if event.delta?.stopReason == "pause_turn" {
+                isTerminal = true
+                throw AIProviderError.responseFailed(Self.paused)
+            }
             // The calls are complete here, and `message_stop` may never arrive on a tool turn.
             guard event.delta?.stopReason == "tool_use" else { return [.usage(usage)] }
             return [.usage(usage)] + flushToolCalls()
@@ -279,6 +298,21 @@ struct AIStreamDecoder: Sendable {
         let input = try? JSONSerialization.jsonObject(with: Data(searchInput.utf8))
         return (input as? [String: Any])?["query"] as? String
     }
+
+    /// The input has streamed whole by the time the block closes, which is when a row can name it.
+    private static func fetchEvents(_ call: PartialToolCall) -> [AIStreamEvent] {
+        let input =
+            (try? JSONSerialization.jsonObject(with: Data(call.arguments.utf8)))
+            as? [String: Any]
+        return [
+            .toolCall(
+                id: call.id, origin: ClaudeWebTools.origin,
+                title: ClaudeWebTools.fetchTitle(input?["url"] as? String))
+        ]
+    }
+
+    private static let paused = String(
+        localized: "Anthropic paused this reply partway through a web search. Send it again to retry.")
 
     private static func anthropicErrorMessage(_ type: String?) -> String {
         switch type {
@@ -403,9 +437,28 @@ private struct AnthropicEvent: Decodable {
     }
 
     struct ContentBlock: Decodable {
+        private struct ResultBody: Decodable { let type: String? }
+
         let type: String?
         let id: String?
         let name: String?
+        let toolUseID: String?
+        /// A fetch's result is an object and a search's an array, so only a fetch's has a type.
+        let resultType: String?
+
+        enum CodingKeys: String, CodingKey {
+            case type, id, name, content
+            case toolUseID = "tool_use_id"
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            type = try container.decodeIfPresent(String.self, forKey: .type)
+            id = try container.decodeIfPresent(String.self, forKey: .id)
+            name = try container.decodeIfPresent(String.self, forKey: .name)
+            toolUseID = try container.decodeIfPresent(String.self, forKey: .toolUseID)
+            resultType = (try? container.decodeIfPresent(ResultBody.self, forKey: .content))?.type
+        }
     }
 
     struct Usage: Decodable {

@@ -24802,6 +24802,58 @@
         }
       }
     },
+    "Anthropic paused this reply partway through a web search. Send it again to retry." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic hat diese Antwort mitten in einer Websuche pausiert. Sende sie erneut, um es noch einmal zu versuchen."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic pausó esta respuesta a mitad de una búsqueda web. Envíala de nuevo para reintentar."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic a mis cette réponse en pause en pleine recherche web. Renvoyez-la pour réessayer."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropicが、Web検索の途中でこの返信を一時停止しました。もう一度送信して再試行してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic이 웹 검색 도중에 이 답변을 일시 중지했습니다. 다시 보내서 재시도하세요."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Anthropic pausou esta resposta no meio de uma busca na web. Envie novamente para tentar de novo."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic приостановил этот ответ посреди поиска в интернете. Отправьте сообщение снова, чтобы повторить."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anthropic 在网页搜索过程中暂停了此回复。请重新发送以重试。"
+          }
+        }
+      }
+    },
     "App Launcher" : {
       "localizations" : {
         "de" : {
@@ -38401,58 +38453,6 @@
         }
       }
     },
-    "Codex and OpenRouter only. Prompts go to a search engine." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nur Codex und OpenRouter. Prompts werden an eine Suchmaschine gesendet."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Solo Codex y OpenRouter. Las instrucciones se envían a un motor de búsqueda."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codex et OpenRouter uniquement. Les requêtes sont envoyées à un moteur de recherche."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CodexとOpenRouterのみ。プロンプトは検索エンジンに送信されます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Codex와 OpenRouter에서만 사용할 수 있습니다. 프롬프트가 검색 엔진으로 전송됩니다."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Somente Codex e OpenRouter. Os prompts vão para um mecanismo de busca."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Только Codex и OpenRouter. Запросы отправляются в поисковую систему."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅限 Codex 和 OpenRouter。提示词会发送给搜索引擎。"
-          }
-        }
-      }
-    },
     "Codex could not finish the response." : {
       "localizations" : {
         "de" : {
@@ -39125,6 +39125,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Codex 已停止。"
+          }
+        }
+      }
+    },
+    "Codex, Claude and OpenRouter only. Prompts go to a search engine." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur Codex, Claude und OpenRouter. Prompts werden an eine Suchmaschine gesendet."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo Codex, Claude y OpenRouter. Las instrucciones se envían a un motor de búsqueda."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex, Claude et OpenRouter uniquement. Les requêtes sont envoyées à un moteur de recherche."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex、Claude、OpenRouterのみ。プロンプトは検索エンジンに送信されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex, Claude, OpenRouter에서만 사용할 수 있습니다. 프롬프트가 검색 엔진으로 전송됩니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Somente Codex, Claude e OpenRouter. Os prompts vão para um mecanismo de busca."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Только Codex, Claude и OpenRouter. Запросы отправляются в поисковую систему."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅限 Codex、Claude 和 OpenRouter。提示词会发送给搜索引擎。"
           }
         }
       }
@@ -59141,158 +59193,106 @@
         }
       }
     },
-    "File Search can’t index without it." : {
+    "File Search can’t index %@ without it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Dateisuche kann ohne sie nicht indexieren."
+            "value" : "Ohne diesen Zugriff kann die Dateisuche %@ nicht indexieren."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La búsqueda de archivos no puede indexar sin él."
+            "value" : "Sin él, la Búsqueda de archivos no puede indexar %@."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "L’accès complet au disque est nécessaire à l’indexation."
+            "value" : "Sans cet accès, la Recherche de fichiers ne peut pas indexer %@."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "これがないと、ファイル検索はインデックスを作成できません。"
+            "value" : "これがないと、ファイル検索は%@をインデックス化できません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "이 권한이 없으면 파일 검색에서 색인을 만들 수 없습니다."
+            "value" : "이 권한이 없으면 파일 검색이 %@을(를) 인덱싱할 수 없습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A Busca de Arquivos não consegue indexar sem isso."
+            "value" : "Sem ele, a Busca de Arquivos não consegue indexar %@."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Без этого поиск файлов не может создать индекс."
+            "value" : "Без него поиск файлов не сможет проиндексировать %@."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有它，文件搜索无法建立索引。"
+            "value" : "没有该权限，文件搜索无法为%@建立索引。"
           }
         }
       }
     },
-    "File Search indexes your whole disk. Press ↵ to open Privacy & Security, then turn on Tinycast under Full Disk Access." : {
+    "File Search reads your disk directly to build a private index on this Mac. In System Settings › Privacy & Security › Full Disk Access, turn on Tinycast. If it isn’t listed, click + and choose Tinycast from Applications. If access still shows as required, quit and reopen Tinycast. Narrower search scopes, such as Developer or Documents, don’t need it." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Dateisuche indexiert dein gesamtes Volume. Drücke ↵, um „Datenschutz & Sicherheit“ zu öffnen, und aktiviere dann Tinycast unter „Festplattenvollzugriff“."
+            "value" : "Die Dateisuche liest deine Festplatte direkt, um auf diesem Mac einen privaten Index aufzubauen. Aktiviere Tinycast unter „Systemeinstellungen › Datenschutz & Sicherheit › Festplattenvollzugriff“. Falls es nicht aufgeführt ist, klicke auf + und wähle Tinycast im Ordner „Programme“. Wenn der Zugriff weiterhin als erforderlich angezeigt wird, beende Tinycast und öffne es erneut. Engere Suchbereiche wie Developer oder Dokumente benötigen ihn nicht."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La búsqueda de archivos indexa todo tu disco. Pulsa ↵ para abrir Privacidad y seguridad y activa Tinycast en Acceso total al disco."
+            "value" : "La Búsqueda de archivos lee tu disco directamente para crear un índice privado en este Mac. En Ajustes del Sistema › Privacidad y seguridad › Acceso total al disco, activa Tinycast. Si no aparece en la lista, haz clic en + y elige Tinycast en Aplicaciones. Si el acceso sigue apareciendo como necesario, cierra Tinycast y vuelve a abrirlo. Los ámbitos de búsqueda más acotados, como Developer o Documentos, no lo necesitan."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La recherche de fichiers indexe l’ensemble de votre disque. Appuyez sur ↵ pour ouvrir Confidentialité et sécurité, puis activez Tinycast sous Accès complet au disque."
+            "value" : "La Recherche de fichiers lit directement votre disque pour créer un index privé sur ce Mac. Dans Réglages Système › Confidentialité et sécurité › Accès complet au disque, activez Tinycast. S’il ne figure pas dans la liste, cliquez sur + et choisissez Tinycast dans Applications. Si l’accès apparaît toujours comme requis, quittez Tinycast puis rouvrez-le. Les emplacements de recherche plus restreints, comme Developer ou Documents, n’en ont pas besoin."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ファイル検索はディスク全体のインデックスを作成します。↵を押して「プライバシーとセキュリティ」を開き、「フルディスクアクセス」でTinycastをオンにしてください。"
+            "value" : "ファイル検索は、このMac上にプライベートなインデックスを作成するために、ディスクを直接読み取ります。システム設定 › プライバシーとセキュリティ › フルディスクアクセスで、Tinycastをオンにしてください。一覧に表示されていない場合は、+をクリックして「アプリケーション」からTinycastを選択します。アクセスが引き続き必要と表示される場合は、Tinycastを終了してもう一度開いてください。Developerや書類など、より狭い検索範囲では必要ありません。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "파일 검색은 전체 디스크의 색인을 만듭니다. ↵를 눌러 개인정보 보호 및 보안을 열고 전체 디스크 접근 권한에서 Tinycast를 켜십시오."
+            "value" : "파일 검색은 이 Mac에 비공개 인덱스를 만들기 위해 디스크를 직접 읽습니다. 시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근 권한에서 Tinycast를 켜십시오. 목록에 없으면 +를 클릭하고 응용 프로그램에서 Tinycast를 선택하십시오. 접근 권한이 계속 필요함으로 표시되면 Tinycast를 종료한 다음 다시 여십시오. Developer나 문서처럼 더 좁은 검색 범위에서는 필요하지 않습니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "A Busca de Arquivos indexa todo o seu disco. Pressione ↵ para abrir Privacidade e Segurança e ative o Tinycast em Acesso Total ao Disco."
+            "value" : "A Busca de Arquivos lê seu disco diretamente para criar um índice privado neste Mac. Em Ajustes do Sistema › Privacidade e Segurança › Acesso Total ao Disco, ative o Tinycast. Se ele não estiver na lista, clique em + e escolha o Tinycast em Aplicativos. Se o acesso ainda aparecer como obrigatório, saia do Tinycast e abra-o novamente. Escopos de busca mais restritos, como Developer ou Documentos, não precisam dele."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Поиск файлов индексирует весь ваш диск. Нажмите ↵, чтобы открыть «Конфиденциальность и безопасность», затем включите Tinycast в разделе «Доступ ко всему диску»."
+            "value" : "Поиск файлов напрямую читает ваш диск, чтобы создать закрытый индекс на этом Mac. В разделе «Системные настройки» › «Конфиденциальность и безопасность» › «Доступ ко всему диску» включите Tinycast. Если приложения нет в списке, нажмите + и выберите Tinycast в папке «Программы». Если доступ по-прежнему отображается как обязательный, завершите работу Tinycast и откройте его снова. Для более узких областей поиска, например Developer или «Документы», он не нужен."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "文件搜索会为你的整个磁盘建立索引。按 ↵ 打开“隐私与安全性”，然后在“完全磁盘访问权限”下打开 Tinycast。"
-          }
-        }
-      }
-    },
-    "File Search reads your disk directly to build a private index on this Mac. In System Settings › Privacy & Security › Full Disk Access, turn on Tinycast. If it isn’t listed, click + and choose Tinycast from Applications. If access still shows as required, quit and reopen Tinycast." : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Dateisuche liest deinen Datenträger direkt, um auf diesem Mac einen privaten Index zu erstellen. Aktiviere Tinycast in „Systemeinstellungen › Datenschutz & Sicherheit › Festplattenvollzugriff“. Falls Tinycast nicht aufgeführt ist, klicke auf „+“ und wähle Tinycast im Ordner „Programme“ aus. Wenn der Zugriff weiterhin als erforderlich angezeigt wird, beende Tinycast und öffne es erneut."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La búsqueda de archivos lee tu disco directamente para crear un índice privado en este Mac. En Ajustes del Sistema › Privacidad y seguridad › Acceso total al disco, activa Tinycast. Si no aparece en la lista, haz clic en + y elige Tinycast en Aplicaciones. Si el acceso sigue apareciendo como necesario, sal de Tinycast y vuelve a abrirlo."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La recherche de fichiers lit directement votre disque pour créer un index privé sur ce Mac. Dans Réglages Système › Confidentialité et sécurité › Accès complet au disque, activez Tinycast. S’il ne figure pas dans la liste, cliquez sur + et choisissez Tinycast dans Applications. Si l’accès est toujours signalé comme requis, quittez puis rouvrez Tinycast."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ファイル検索は、ディスクを直接読み取って、このMac上にプライベートなインデックスを作成します。システム設定 › プライバシーとセキュリティ › フルディスクアクセスで、Tinycastをオンにしてください。一覧にない場合は、+をクリックして「アプリケーション」からTinycastを選択します。それでもアクセスが必要と表示される場合は、Tinycastを終了してからもう一度開いてください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "파일 검색은 디스크를 직접 읽어 이 Mac에 비공개 색인을 만듭니다. 시스템 설정 › 개인정보 보호 및 보안 › 전체 디스크 접근 권한에서 Tinycast를 켜십시오. 목록에 없으면 +를 클릭하고 응용 프로그램에서 Tinycast를 선택하십시오. 그래도 접근 권한이 필요하다고 표시되면 Tinycast를 종료한 후 다시 여십시오."
-          }
-        },
-        "pt" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A Busca de Arquivos lê seu disco diretamente para criar um índice privado neste Mac. Em Ajustes do Sistema › Privacidade e Segurança › Acesso Total ao Disco, ative o Tinycast. Se ele não estiver na lista, clique em + e escolha o Tinycast em Aplicativos. Se o acesso ainda aparecer como necessário, encerre e reabra o Tinycast."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поиск файлов напрямую читает ваш диск, чтобы создать закрытый индекс на этом Mac. В разделе «Системные настройки» › «Конфиденциальность и безопасность» › «Доступ ко всему диску» включите Tinycast. Если его нет в списке, нажмите «+» и выберите Tinycast в папке «Программы». Если доступ по-прежнему отображается как необходимый, завершите Tinycast и откройте его снова."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文件搜索会直接读取你的磁盘，在这台 Mac 上建立私有索引。请在“系统设置”›“隐私与安全性”›“完全磁盘访问权限”中打开 Tinycast。如果列表中没有，请点按 +，然后从“应用程序”中选取 Tinycast。如果仍显示需要访问权限，请退出并重新打开 Tinycast。"
+            "value" : "文件搜索会直接读取你的磁盘，在这台 Mac 上建立私有索引。请在“系统设置”›“隐私与安全性”›“完全磁盘访问权限”中打开 Tinycast。如果列表中没有，请点按 + 并从“应用程序”中选取 Tinycast。如果访问权限仍显示为必需，请退出并重新打开 Tinycast。较窄的搜索范围（例如 Developer 或“文稿”）不需要该权限。"
           }
         }
       }
@@ -60962,6 +60962,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文件夹"
+          }
+        }
+      }
+    },
+    "Folder Access" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordnerzugriff"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acceso a carpetas"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accès aux dossiers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォルダへのアクセス"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "폴더 접근 권한"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acesso a Pastas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к папкам"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件夹访问权限"
           }
         }
       }
@@ -69315,54 +69367,54 @@
         }
       }
     },
-    "Indexes your disk for instant results. Needs Full Disk Access." : {
+    "Indexes your search scopes for instant results. Full Disk Access is needed only for protected folders." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indexiert deinen Datenträger für sofortige Ergebnisse. Erfordert Festplattenvollzugriff."
+            "value" : "Indexiert deine Suchbereiche für sofortige Ergebnisse. Festplattenvollzugriff ist nur für geschützte Ordner nötig."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indexa tu disco para obtener resultados al instante. Requiere Acceso total al disco."
+            "value" : "Indexa tus ámbitos de búsqueda para obtener resultados instantáneos. El Acceso total al disco solo es necesario para las carpetas protegidas."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indexe votre disque pour des résultats instantanés. Nécessite l’accès complet au disque."
+            "value" : "Indexe vos emplacements de recherche pour des résultats instantanés. L’accès complet au disque n’est nécessaire que pour les dossiers protégés."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ディスクのインデックスを作成して、すぐに結果を表示します。フルディスクアクセスが必要です。"
+            "value" : "検索範囲をインデックス化して、結果を即座に表示します。フルディスクアクセスが必要なのは、保護されたフォルダのみです。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "즉각적인 결과를 위해 디스크의 색인을 만듭니다. 전체 디스크 접근 권한이 필요합니다."
+            "value" : "검색 범위를 인덱싱하여 결과를 즉시 보여 줍니다. 전체 디스크 접근 권한은 보호된 폴더에만 필요합니다."
           }
         },
         "pt" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Indexa seu disco para resultados instantâneos. Requer Acesso Total ao Disco."
+            "value" : "Indexa seus escopos de busca para resultados instantâneos. O Acesso Total ao Disco só é necessário para pastas protegidas."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Индексирует ваш диск для мгновенных результатов. Требуется доступ ко всему диску."
+            "value" : "Индексирует области поиска для мгновенных результатов. Доступ ко всему диску нужен только для защищённых папок."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为你的磁盘建立索引以便即时获得结果。需要完全磁盘访问权限。"
+            "value" : "为搜索范围建立索引，以便即时显示结果。仅受保护的文件夹需要完全磁盘访问权限。"
           }
         }
       }
@@ -88466,6 +88518,58 @@
         }
       }
     },
+    "None of your search scopes holds a folder that only Full Disk Access can read. For Desktop, Documents, Downloads and iCloud Drive, macOS asks separately the first time Tinycast reads them." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keiner deiner Suchbereiche enthält einen Ordner, den nur der Festplattenvollzugriff lesen kann. Für Schreibtisch, Dokumente, Downloads und iCloud Drive fragt macOS beim ersten Lesen durch Tinycast separat nach."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ninguno de tus ámbitos de búsqueda contiene una carpeta que solo pueda leer el Acceso total al disco. Para Escritorio, Documentos, Descargas e iCloud Drive, macOS pregunta por separado la primera vez que Tinycast los lee."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun de vos emplacements de recherche ne contient de dossier que seul l’accès complet au disque peut lire. Pour Bureau, Documents, Téléchargements et iCloud Drive, macOS demande séparément l’autorisation la première fois que Tinycast les lit."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索範囲のいずれにも、フルディスクアクセスでしか読み取れないフォルダは含まれていません。デスクトップ、書類、ダウンロード、iCloud Driveについては、Tinycastが初めて読み取るときにmacOSが別途確認します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 범위에 전체 디스크 접근 권한으로만 읽을 수 있는 폴더가 없습니다. 데스크탑, 문서, 다운로드, iCloud Drive는 Tinycast가 처음 읽을 때 macOS가 별도로 확인합니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nenhum dos seus escopos de busca contém uma pasta que só o Acesso Total ao Disco consiga ler. Para Mesa, Documentos, Downloads e iCloud Drive, o macOS pergunta separadamente na primeira vez que o Tinycast os lê."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ни одна из ваших областей поиска не содержит папку, которую можно прочитать только с доступом ко всему диску. Для папок «Рабочий стол», «Документы», «Загрузки» и iCloud Drive macOS запрашивает разрешение отдельно, когда Tinycast читает их в первый раз."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的搜索范围中没有只有完全磁盘访问权限才能读取的文件夹。对于“桌面”“文稿”“下载”和 iCloud 云盘，macOS 会在 Tinycast 首次读取时单独询问。"
+          }
+        }
+      }
+    },
     "None yet" : {
       "localizations" : {
         "de" : {
@@ -89037,6 +89141,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未安装"
+          }
+        }
+      }
+    },
+    "Not needed" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht erforderlich"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No necesario"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Non nécessaire"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不要"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "필요 없음"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Não necessário"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не требуется"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不需要"
           }
         }
       }
@@ -94555,6 +94711,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开“隐私与安全性”›“日历”。"
+          }
+        }
+      }
+    },
+    "Opens Privacy & Security › Files & Folders." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnet „Datenschutz & Sicherheit › Dateien und Ordner“."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Privacidad y seguridad › Archivos y carpetas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvre Confidentialité et sécurité › Fichiers et dossiers."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「プライバシーとセキュリティ」›「ファイルとフォルダ」を開きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개인정보 보호 및 보안 › 파일 및 폴더를 엽니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre Privacidade e Segurança › Arquivos e Pastas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открывает «Конфиденциальность и безопасность» › «Файлы и папки»."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开“隐私与安全性”›“文件和文件夹”。"
           }
         }
       }
@@ -139231,6 +139439,58 @@
         }
       }
     },
+    "Turn on Tinycast under Privacy & Security › Files & Folders and the index updates on its own. Full Disk Access would also cover them." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktiviere Tinycast unter „Datenschutz & Sicherheit › Dateien und Ordner“, dann aktualisiert sich der Index von selbst. Auch der Festplattenvollzugriff würde sie abdecken."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activa Tinycast en Privacidad y seguridad › Archivos y carpetas y el índice se actualizará solo. El Acceso total al disco también las cubriría."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activez Tinycast dans Confidentialité et sécurité › Fichiers et dossiers et l’index se mettra à jour tout seul. L’accès complet au disque les couvrirait également."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「プライバシーとセキュリティ」›「ファイルとフォルダ」でTinycastをオンにすると、インデックスは自動的に更新されます。フルディスクアクセスでも対応できます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개인정보 보호 및 보안 › 파일 및 폴더에서 Tinycast를 켜면 인덱스가 자동으로 업데이트됩니다. 전체 디스크 접근 권한으로도 해결할 수 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ative o Tinycast em Privacidade e Segurança › Arquivos e Pastas e o índice será atualizado automaticamente. O Acesso Total ao Disco também cobriria essas pastas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Включите Tinycast в разделе «Конфиденциальность и безопасность» › «Файлы и папки», и индекс обновится автоматически. Доступ ко всему диску тоже охватил бы эти папки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“隐私与安全性”›“文件和文件夹”中打开 Tinycast，索引会自动更新。完全磁盘访问权限同样可以涵盖这些文件夹。"
+          }
+        }
+      }
+    },
     "Turn on iCloud Sync?" : {
       "localizations" : {
         "de" : {
@@ -143930,6 +144190,58 @@
         }
       }
     },
+    "Web" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "웹"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Веб"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网页"
+          }
+        }
+      }
+    },
     "Web Search" : {
       "localizations" : {
         "de" : {
@@ -146374,6 +146686,110 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你的 iCloud 储存空间已满。请释放空间以继续同步。"
+          }
+        }
+      }
+    },
+    "Your search scopes don’t include protected folders." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Suchbereiche enthalten keine geschützten Ordner."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus ámbitos de búsqueda no incluyen carpetas protegidas."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos emplacements de recherche n’incluent aucun dossier protégé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索範囲に保護されたフォルダは含まれていません。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 범위에 보호된 폴더가 없습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus escopos de busca não incluem pastas protegidas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваши области поиска не включают защищённые папки."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的搜索范围不包含受保护的文件夹。"
+          }
+        }
+      }
+    },
+    "Your search scopes include folders macOS protects. Press ↵ to open Privacy & Security and turn on Tinycast, or narrow the scopes in Settings ▸ File Search." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine Suchbereiche enthalten Ordner, die macOS schützt. Drücke ↵, um „Datenschutz & Sicherheit“ zu öffnen und Tinycast zu aktivieren, oder schränke die Suchbereiche unter Einstellungen ▸ Dateisuche ein."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tus ámbitos de búsqueda incluyen carpetas que macOS protege. Pulsa ↵ para abrir Privacidad y seguridad y activar Tinycast, o reduce los ámbitos en Ajustes ▸ Búsqueda de archivos."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vos emplacements de recherche incluent des dossiers que macOS protège. Appuyez sur ↵ pour ouvrir Confidentialité et sécurité et activer Tinycast, ou restreignez les emplacements dans Réglages ▸ Recherche de fichiers."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索範囲に、macOSが保護しているフォルダが含まれています。↵を押して「プライバシーとセキュリティ」を開き、Tinycastをオンにするか、設定 ▸ ファイル検索で検索範囲を絞り込んでください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "검색 범위에 macOS가 보호하는 폴더가 포함되어 있습니다. ↵를 눌러 개인정보 보호 및 보안을 열고 Tinycast를 켜거나, 설정 ▸ 파일 검색에서 검색 범위를 좁히십시오."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seus escopos de busca incluem pastas que o macOS protege. Pressione ↵ para abrir Privacidade e Segurança e ativar o Tinycast, ou restrinja os escopos em Ajustes ▸ Busca de Arquivos."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ваши области поиска включают папки, которые защищает macOS. Нажмите ↵, чтобы открыть «Конфиденциальность и безопасность» и включить Tinycast, или сузьте области поиска в Настройках ▸ Поиск файлов."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你的搜索范围包含 macOS 保护的文件夹。按 ↵ 打开“隐私与安全性”并打开 Tinycast，或在设置 ▸ 文件搜索中缩小搜索范围。"
           }
         }
       }
@@ -149137,6 +149553,58 @@
         }
       }
     },
+    "macOS is blocking Tinycast from %@." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS blockiert den Zugriff von Tinycast auf %@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS está bloqueando el acceso de Tinycast a %@."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS bloque l’accès de Tinycast à %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOSがTinycastによる%@へのアクセスをブロックしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS가 Tinycast의 %@ 접근을 차단하고 있습니다."
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O macOS está bloqueando o acesso do Tinycast a %@."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS блокирует доступ Tinycast к %@."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 正在阻止 Tinycast 访问%@。"
+          }
+        }
+      }
+    },
     "macOS names %@, which isn't always right." : {
       "localizations" : {
         "de" : {
@@ -151041,6 +151509,58 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "居中"
+          }
+        }
+      }
+    },
+    "your whole disk" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "deine gesamte Festplatte"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "todo tu disco"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tout votre disque"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスク全体"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "디스크 전체"
+          }
+        },
+        "pt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "todo o seu disco"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "весь ваш диск"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "整个磁盘"
           }
         }
       }

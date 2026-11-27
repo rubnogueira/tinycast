@@ -56,6 +56,24 @@ enum Permissions {
         NSWorkspace.shared.open(url)
     }
 
+    /// Opening a folder is how macOS asks about it, so this blocks while a prompt is open.
+    static func isFolderBlocked(_ path: String) -> Bool {
+        let descriptor = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC)
+        guard descriptor >= 0 else { return errno == EPERM }
+        close(descriptor)
+        return false
+    }
+
+    @MainActor
+    static func openFilesAndFoldersSettings() {
+        guard
+            let url = URL(
+                string:
+                    "x-apple.systempreferences:com.apple.preference.security?Privacy_FilesAndFolders")
+        else { return }
+        NSWorkspace.shared.open(url)
+    }
+
     static func calendarAccess() -> CalendarAccess {
         switch EKEventStore.authorizationStatus(for: .event) {
         case .fullAccess: return .granted

@@ -16,6 +16,10 @@ final class FileIndexer {
     private(set) var status: Status = .off
     /// An index is mapped, so searches answer even while a rebuild runs.
     private(set) var hasIndex = false
+    /// The scopes whose crawl reaches a folder only Full Disk Access opens; empty needs nothing.
+    private(set) var fullDiskRoots: [String] = []
+    /// Folders macOS has refused one at a time; Full Disk Access would open them all.
+    private(set) var blockedFolders: [String] = []
     @ObservationIgnored let index = FileIndex()
     @ObservationIgnored var onIndexChanged: (() -> Void)?
     @ObservationIgnored var onRecentChanged: (() -> Void)?
@@ -25,6 +29,7 @@ final class FileIndexer {
     @ObservationIgnored private var buildTask: Task<Void, Never>?
     @ObservationIgnored private var liveRefresh: Task<Void, Never>?
     @ObservationIgnored private var isRecentStale = false
+    @ObservationIgnored private var accessProbe: Task<Void, Never>?
     @ObservationIgnored private let directory = AppPaths.applicationSupport()
         .appending(path: "FileIndex", directoryHint: .isDirectory)
     @ObservationIgnored private let events = DispatchQueue(
@@ -45,24 +50,34 @@ final class FileIndexer {
         }
     }
 
+    /// Scopes that avoid protected folders need nothing; the rest need Full Disk Access.
+    private var hasRequiredAccess: Bool { fullDiskRoots.isEmpty || Permissions.hasFullDiskAccess() }
+
     func apply(_ policy: FileSearchPolicy) {
         guard policy != self.policy else { return }
         let isFirst = self.policy == nil
         self.policy = policy
+        fullDiskRoots = FileSearchAccess.rootsNeedingFullDiskAccess(policy)
         guard isEnabled else { return }
         // Editing a list fires once per change, so a burst of them builds once.
-        if isFirst || status == .needsAccess { activate() } else { build(after: .seconds(1)) }
+        if isFirst || status == .needsAccess || !hasRequiredAccess {
+            activate()
+        } else {
+            build(after: .seconds(1))
+        }
     }
 
-    /// Full Disk Access can be granted or revoked at any time, and nothing announces it.
+    /// Access can be granted or revoked at any time, and nothing announces it.
     func refreshAccess() {
         guard isEnabled else { return }
-        let granted = Permissions.hasFullDiskAccess()
-        if granted, status == .needsAccess {
+        let satisfied = hasRequiredAccess
+        if satisfied, status == .needsAccess {
             activate()
-        } else if !granted, status != .needsAccess {
+        } else if !satisfied, status != .needsAccess {
             resetIndex()
             status = .needsAccess
+        } else if !blockedFolders.isEmpty, case .ready = status {
+            probeFolders(rebuildIfGranted: true)
         }
     }
 
@@ -73,7 +88,7 @@ final class FileIndexer {
 
     private func activate() {
         guard isEnabled, let policy else { return }
-        guard Permissions.hasFullDiskAccess() else {
+        guard hasRequiredAccess else {
             resetIndex()
             status = .needsAccess
             return
@@ -104,6 +119,9 @@ final class FileIndexer {
         liveRefresh?.cancel()
         liveRefresh = nil
         isRecentStale = false
+        accessProbe?.cancel()
+        accessProbe = nil
+        blockedFolders = []
         watcher = nil
         index.replace(with: nil, policy: policy)
         hasIndex = false
@@ -117,6 +135,25 @@ final class FileIndexer {
         watch(snapshot)
         status = .ready(items: index.itemCount, builtAt: snapshot.builtAt)
         onIndexChanged?()
+        probeFolders()
+    }
+
+    /// A folder that was refused and now opens was missing from the last crawl, so it rebuilds.
+    private func probeFolders(rebuildIfGranted: Bool = false) {
+        guard isEnabled, let policy, accessProbe == nil else { return }
+        let folders = Permissions.hasFullDiskAccess() ? [] : FileSearchAccess.foldersToProbe(policy)
+        accessProbe = Task { [weak self] in
+            let blocked = await FolderAccessProbe.blocked(among: folders)
+            guard let self, !Task.isCancelled else { return }
+            accessProbe = nil
+            guard policy == self.policy else {
+                probeFolders(rebuildIfGranted: rebuildIfGranted)
+                return
+            }
+            let granted = !blockedFolders.allSatisfy(blocked.contains)
+            if blocked != blockedFolders { blockedFolders = blocked }
+            if rebuildIfGranted, granted, status != .needsAccess { build(after: .zero) }
+        }
     }
 
     /// Replayed from the snapshot's own event id, so whatever changed since the crawl began lands.
@@ -225,6 +262,17 @@ final class FileIndexer {
     private func progress(_ count: Int) {
         guard buildTask != nil, case .building = status else { return }
         status = .building(items: count)
+    }
+}
+
+/// Opening a folder can sit behind a prompt, so it runs on a queue of its own, never the pool.
+private enum FolderAccessProbe {
+    private static let queue = DispatchQueue(label: "com.tinycast.file-index.access", qos: .utility)
+
+    static func blocked(among folders: [String]) async -> [String] {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: folders.filter(Permissions.isFolderBlocked)) }
+        }
     }
 }
 

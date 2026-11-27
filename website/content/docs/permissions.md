@@ -89,22 +89,39 @@ A few actions show their own macOS prompt the first time you run them:
 If you decline, Tinycast tells you and links to the right System Settings pane, so the action never
 fails silently.
 
+## Files and folders
+
+[File Search](/docs/features/file-search) reads the folders you choose as search scopes, and asks
+macOS for access only to the ones macOS guards. **Desktop**, **Documents**, **Downloads**, iCloud
+Drive, cloud storage folders and other volumes each show a macOS prompt the first time File Search
+reads them. Folders like `~/Developer` or `/Applications` show nothing.
+
+If you decline, **Settings → File Search** lists the folder as **Blocked** and links to
+**System Settings → Privacy & Security → Files & Folders**. Turn Tinycast on there and the index
+updates on its own.
+
 ## Full Disk Access
 
-Tinycast **checks** whether it has Full Disk Access but **never asks** for it automatically.
+Tinycast asks for Full Disk Access **only when a File Search scope includes a folder that macOS
+protects**, such as your whole disk, your home folder or `~/Library`. That's where Mail, Messages,
+Safari and the Trash live, and Files & Folders can't grant them one at a time. Until you grant it,
+File Search indexes nothing for those scopes, and **Settings → File Search** says which scope needs it.
 Settings → Permissions and Settings → File Search both show its status and offer a button to open
 System Settings → Privacy & Security → Full Disk Access, where you can grant it manually.
 
-[File Search](/docs/features/file-search) requires this access to build its private index on your Mac.
-For uninstalling apps, it is optional.
+Narrower scopes, such as `~/Developer` or `~/Documents`, never need it. You can also keep your home
+folder as a scope and add `~/Library` to **Ignore Patterns**; the Trash is already ignored by default.
 
-The [uninstaller](/docs/launcher/uninstall) checks in the background to work out which files it can
+Everywhere else Tinycast **checks** whether it has Full Disk Access but **never asks** for it. The
+[uninstaller](/docs/launcher/uninstall) checks in the background to work out which files it can
 move. Without Full Disk Access, protected folders like `~/Library/Containers`,
 `~/Library/Group Containers` and `~/Library/Cookies` appear as locked rows. At worst, you remove
 those by hand.
 
 ## What Tinycast never needs
 
+- **Full Disk Access for ordinary folders.** File Search needs it only for a scope that includes a
+  protected folder, as described above.
 - **Screen Recording.** The window switcher reads window titles through Accessibility.
 - **Location.** The calculator picks your currency from your Mac's region setting.
 - **Input Monitoring.** Snippets listen through Accessibility, as described above.

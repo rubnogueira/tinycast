@@ -415,6 +415,9 @@ final class SettingsProcessController {
             modifierTapsNeedAccessibility: core.hotKeys.modifierTapMonitor.needsAccessibility,
             snippetsNeedAccessibility: core.snippetListener.status == .needsAccessibility,
             fileIndex: core.fileIndexer.status,
+            fileAccess: MainAppStatus.FileAccess(
+                fullDiskRoots: core.fileIndexer.fullDiskRoots,
+                blockedFolders: core.fileIndexer.blockedFolders),
             cloudSync: MainAppStatus.CloudSync(
                 status: cloud.status, stopReason: cloud.stopReason, counts: cloud.counts,
                 thisMac: cloud.devices.name, otherDevices: cloud.otherDevices),

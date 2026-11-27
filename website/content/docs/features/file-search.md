@@ -1,6 +1,6 @@
 ---
 title: File search
-description: Find files and folders instantly from a private index on your Mac. Needs Full Disk Access.
+description: Find files and folders instantly from a private index on your Mac. Full Disk Access is needed only for protected folders.
 ---
 
 Search file and folder names in the folders you choose. Tinycast builds its own index of those
@@ -13,16 +13,21 @@ Open it with the **Search Files** command, its own global shortcut, or the **Sea
 "Use … with" at the bottom of any launcher search. The last option opens with your text already
 typed.
 
-## Full Disk Access
+## Permissions
 
-**File Search needs Full Disk Access, and indexes nothing without it.** Tinycast reads your folders
-directly to build the index, and macOS protects many of them, so it needs this access to list them.
+What File Search asks macOS for depends on your search scopes:
 
-Tinycast **checks** for access but **never asks** for it. **Settings → File Search** shows
-**Granted** or **Required**, with a button that opens System Settings → Privacy & Security → Full Disk
-Access. Turn on Tinycast there. If it isn't listed, click **+** and choose Tinycast from
-Applications. Indexing starts on its own once access is granted. If the pane still says
-**Required**, quit and reopen Tinycast.
+- **Most folders need nothing**, such as `~/Developer` or `/Applications`.
+- **Desktop, Documents, Downloads, iCloud Drive and other volumes** show a macOS prompt the first time
+  File Search reads them. If you decline, **Settings → File Search** lists them as **Blocked**.
+- **Full Disk Access** is needed only when a scope includes a folder macOS protects, such as your whole
+  disk, your home folder or `~/Library`. Until you grant it, nothing is searched for that scope.
+
+Tinycast **checks** for Full Disk Access but **never asks** for it. **Settings → File Search → Full
+Disk Access** shows **Granted**, **Required** or **Not needed**, with a button that opens System
+Settings → Privacy & Security → Full Disk Access. Turn on Tinycast there. If it isn't listed, click
+**+** and choose Tinycast from Applications. Indexing starts on its own once access is granted. If the
+pane still says **Required**, quit and reopen Tinycast.
 
 What the index holds, and where it goes:
 
@@ -33,7 +38,8 @@ What the index holds, and where it goes:
 - **It never downloads.** iCloud Drive and other cloud files that aren't on your Mac are listed as
   they are, without downloading them.
 
-See [Permissions](/docs/permissions#full-disk-access) for what else Full Disk Access is used for.
+See [Permissions](/docs/permissions#files-and-folders) for the details, and
+[Full Disk Access](/docs/permissions#full-disk-access) for what else it is used for.
 
 ## The screen
 

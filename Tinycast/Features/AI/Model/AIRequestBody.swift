@@ -99,11 +99,6 @@ enum AIRequestBody {
         return body
     }
 
-    /// The basic version: later ones filter through code execution, which not every model runs.
-    private static var anthropicWebSearch: [String: Any] {
-        ["type": "web_search_20250305", "name": "web_search", "max_uses": 5]
-    }
-
     private static func anthropic(
         _ input: AIRequest, configuration: AIHTTPConfiguration
     ) -> [String: Any] {
@@ -125,7 +120,8 @@ enum AIRequestBody {
                 "input_schema": $0.parameters.jsonObject
             ]
         }
-        if input.webSearch { tools.append(anthropicWebSearch) }
+        // Anthropic runs these itself, so no tool loop of Tinycast's ever sees a call to them.
+        if input.webSearch { tools += ClaudeWebTools.serverTools }
         if !tools.isEmpty { body["tools"] = tools }
         return body
     }
